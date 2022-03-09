@@ -1,0 +1,43 @@
+name: Test
+on:
+  push:
+    branches: [ main, test ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ 'ubuntu-20.04', 'windows-2019', 'macos-10.15' ]
+        python-version: [ '3.8', '3.9', '3.10' ]
+        poetry-version: [ '1.1' ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v2.0.0
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+      - name: Install dependencies
+        run: poetry install
+      - name: Run tests
+        run: poetry run pytest --cov=sigma --cov-report term --cov-report xml:cov.xml -vv
+      - name: Store coverage for badge
+        if: ${{ runner.os == 'Linux' }}
+        run: poetry run python print-coverage.py >> $GITHUB_ENV
+      - name: Create coverage badge
+        if: ${{ github.repository == 'SigmaHQ/sigma-cli' && github.event_name == 'push' && runner.os == 'Linux' }}
+        uses: schneegans/dynamic-badges-action@v1.1.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 0c868df261d4a5d5a1dafe71b1557d69
+          filename: SigmaHQ-sigma-cli.json
+          label: Coverage
+          message: ${{ env.COVERAGE }}
+          color: ${{ env.COVERAGE_COLOR }}
