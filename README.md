@@ -9,7 +9,39 @@ and convert Sigma rules into query languages.
 
 ## Getting Started
 
-tbd
+### Installation
+
+The easiest way to install the Sigma CLI is via *pipx* or *pip*. For this purpose run one of the following:
+
+```
+python -m pipx install sigma-cli
+python -m pip install sigma-cli
+```
+
+Another way is to run this from source in a virtual environment managed by [Poetry](https://python-poetry.org/docs/basic-usage/):
+
+```
+git clone https://github.com/SigmaHQ/sigma-cli.git
+cd sigma-cli
+poetry install
+poetry shell
+```
+
+### Usage
+
+The CLI is available as *sigma* command. A typical invocation is:
+
+```
+sigma convert -t <backend> -p <processing pipeline 1> -p <processing pipeline 2> [...] <directory or file>
+```
+
+E.g. to convert process creation Sigma rules from a directory into Splunk queries for Sysmon logs run:
+
+```
+sigma convert -t splunk -p sysmon sigma/rules/windows/process_creation
+```
+
+Available conversion backends and processing pipelines can be listed with `sigma list`.
 
 ## Maintainers
 
