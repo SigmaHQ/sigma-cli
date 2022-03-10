@@ -330,7 +330,7 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "pysigma"
-version = "0.3.0"
+version = "0.3.1"
 description = "Sigma rule processing and conversion tools"
 category = "main"
 optional = false
@@ -905,8 +905,8 @@ pyparsing = [
     {file = "pyparsing-2.4.7.tar.gz", hash = "sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1"},
 ]
 pysigma = [
-    {file = "pySigma-0.3.0-py3-none-any.whl", hash = "sha256:2c693b3e531331a140aa815215bd94ca43789d5176cbf592f77d33cc9c101ae4"},
-    {file = "pySigma-0.3.0.tar.gz", hash = "sha256:6f6618118a36fc09300379337319afd4a2354663ee073b42378cd1cd2a1ea893"},
+    {file = "pySigma-0.3.1-py3-none-any.whl", hash = "sha256:941eb45de5523db229cb7624d6ac782b966ed1abe70dde2071694e32f2233d7e"},
+    {file = "pySigma-0.3.1.tar.gz", hash = "sha256:ad183d39afb1d5f83475dca2f633b038306887ef7b47aae095953439b42c1eb2"},
 ]
 pysigma-backend-splunk = [
     {file = "pysigma-backend-splunk-0.1.1.tar.gz", hash = "sha256:01b509913abec9e6205a3b77b922cd386711fc24181ff7b1af6b6d2420fcb18c"},
