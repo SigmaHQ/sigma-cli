@@ -330,7 +330,7 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "pysigma"
-version = "0.3.1"
+version = "0.3.2"
 description = "Sigma rule processing and conversion tools"
 category = "main"
 optional = false
@@ -353,14 +353,14 @@ pysigma = ">=0.3.0,<0.4.0"
 
 [[package]]
 name = "pysigma-pipeline-crowdstrike"
-version = "0.1.2"
+version = "0.1.3"
 description = "pySigma CrowdStrike processing pipelines"
 category = "main"
 optional = false
 python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-pysigma = ">=0.3,<0.4"
+pysigma = ">=0.3.2,<0.4.0"
 
 [[package]]
 name = "pysigma-pipeline-sysmon"
@@ -905,16 +905,16 @@ pyparsing = [
     {file = "pyparsing-2.4.7.tar.gz", hash = "sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1"},
 ]
 pysigma = [
-    {file = "pySigma-0.3.1-py3-none-any.whl", hash = "sha256:941eb45de5523db229cb7624d6ac782b966ed1abe70dde2071694e32f2233d7e"},
-    {file = "pySigma-0.3.1.tar.gz", hash = "sha256:ad183d39afb1d5f83475dca2f633b038306887ef7b47aae095953439b42c1eb2"},
+    {file = "pySigma-0.3.2-py3-none-any.whl", hash = "sha256:cdb251b2effe46399d274592f9b48bf0f9171ec26ad8e8ef3c23db2846eb25a4"},
+    {file = "pySigma-0.3.2.tar.gz", hash = "sha256:e349f31450f67364645fe96bf78b5ea42b19c2d25616ffc95db1006bb95acdbd"},
 ]
 pysigma-backend-splunk = [
     {file = "pysigma-backend-splunk-0.1.1.tar.gz", hash = "sha256:01b509913abec9e6205a3b77b922cd386711fc24181ff7b1af6b6d2420fcb18c"},
     {file = "pysigma_backend_splunk-0.1.1-py3-none-any.whl", hash = "sha256:c751f04c02b8bb0d85b438ed8681dd62e1289588b9a0ec4e38042e4bce0f4559"},
 ]
 pysigma-pipeline-crowdstrike = [
-    {file = "pysigma-pipeline-crowdstrike-0.1.2.tar.gz", hash = "sha256:0741fda1c9c2b323e1b5ad2e6d3c9c7523e74de882fd25f199b833ffe400fe23"},
-    {file = "pysigma_pipeline_crowdstrike-0.1.2-py3-none-any.whl", hash = "sha256:e30b6a8ddce043f46fb200cb2f9d199b616313c622a20c950f55a5e7261483d9"},
+    {file = "pysigma-pipeline-crowdstrike-0.1.3.tar.gz", hash = "sha256:74949044b7d02d1b58f633a8689505545161f2408e09ea94747ab94386bbbee2"},
+    {file = "pysigma_pipeline_crowdstrike-0.1.3-py3-none-any.whl", hash = "sha256:fe49a132c10721859bdd187d8bc37797f35c1ef4e83be8d3282915080a5ba813"},
 ]
 pysigma-pipeline-sysmon = [
     {file = "pysigma-pipeline-sysmon-0.1.1.tar.gz", hash = "sha256:55d2b89d292b60eaa7d607dfe3b195270a53ca5fedcd4d473cdb1fc16205abfe"},
