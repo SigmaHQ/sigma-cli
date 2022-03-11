@@ -45,10 +45,14 @@ Available conversion backends and processing pipelines can be listed with `sigma
 
 Backends can support different output formats, e.g. plain queries and a file that can be imported into the target
 system. These formats can be listed with `sigma list formats <backend>` and specified for conversion with the `-f`
-option. Example:
+option.
+
+In addition, an output file can be specified with `-o`.
+
+Example for output formats and files:
 
 ```
-sigma convert -t splunk -f savedsearches -p sysmon sigma/rules/windows/process_creation
+sigma convert -t splunk -f savedsearches -p sysmon -o savedsearches.conf sigma/rules/windows/process_creation
 ```
 
 Outputs a Splunk savedsearches.conf containing the converted searches.
