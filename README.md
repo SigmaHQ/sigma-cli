@@ -43,6 +43,16 @@ sigma convert -t splunk -p sysmon sigma/rules/windows/process_creation
 
 Available conversion backends and processing pipelines can be listed with `sigma list`.
 
+Backends can support different output formats, e.g. plain queries and a file that can be imported into the target
+system. These formats can be listed with `sigma list formats <backend>` and specified for conversion with the `-f`
+option. Example:
+
+```
+sigma convert -t splunk -f savedsearches -p sysmon sigma/rules/windows/process_creation
+```
+
+Outputs a Splunk savedsearches.conf containing the converted searches.
+
 ## Maintainers
 
 The project is currently maintained by:
