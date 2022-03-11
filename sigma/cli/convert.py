@@ -1,3 +1,4 @@
+from genericpath import exists
 import pathlib
 import click
 
@@ -36,12 +37,19 @@ from .pipelines import pipelines
     default=False,
     help="Skip conversion of rules that can't be handled by the backend",
 )
+@click.option(
+    "--output", "-o",
+    type=click.File("w"),
+    default="-",
+    show_default=True,
+    help="Write result to specified file. '-' writes to standard output."
+)
 @click.argument(
     "input",
     nargs=-1,
     type=click.Path(exists=True, path_type=pathlib.Path),
 )
-def convert(target, pipeline, format, skip_unsupported, input, file_pattern):
+def convert(target, pipeline, format, skip_unsupported, output, input, file_pattern):
     """
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
     into directories and converts all files matching the pattern in --file-pattern.
@@ -58,8 +66,8 @@ def convert(target, pipeline, format, skip_unsupported, input, file_pattern):
         rule_collection = SigmaCollection.load_ruleset(input, recursion_pattern="**/" + file_pattern)
         result = backend.convert(rule_collection, format)
         if isinstance(result, str):
-            click.echo(result)
+            output.write(result)
         else:
-            click.echo("\n\n".join(result))
+            output.write("\n\n".join(result))
     except SigmaError as e:
         click.echo("Error while conversion: " + str(e), err=True)
