@@ -18,6 +18,21 @@ def list_targets():
     table.align = "l"
     click.echo(table.get_string())
 
+@list_group.command(name="formats", help="List formats supported by specified conversion backend.")
+@click.argument(
+    "backend",
+    type=click.Choice(backends.keys()),
+)
+def list_formats(backend):
+    table = PrettyTable()
+    table.field_names = ("Format", "Description")
+    table.add_rows([
+        (name, description)
+        for name, description in backends[backend].formats.items()
+    ])
+    table.align = "l"
+    click.echo(table.get_string())
+
 @list_group.command(name="pipelines", help="List processing pipelines.")
 def list_pipelines():
     table = PrettyTable()

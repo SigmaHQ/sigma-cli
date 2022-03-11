@@ -20,6 +20,12 @@ from .pipelines import pipelines
     help="Specify processing pipelines as identifiers (list pipelines) or YAML files",
 )
 @click.option(
+    "--format", "-f",
+    default="default",
+    show_default=True,
+    help="Select backend output format",
+)
+@click.option(
     "--file-pattern", "-P",
     default="*.yml",
     show_default=True,
@@ -35,7 +41,7 @@ from .pipelines import pipelines
     nargs=-1,
     type=click.Path(exists=True, path_type=pathlib.Path),
 )
-def convert(target, pipeline, skip_unsupported, input, file_pattern):
+def convert(target, pipeline, format, skip_unsupported, input, file_pattern):
     """
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
     into directories and converts all files matching the pattern in --file-pattern.
@@ -50,7 +56,10 @@ def convert(target, pipeline, skip_unsupported, input, file_pattern):
 
     try:
         rule_collection = SigmaCollection.load_ruleset(input, recursion_pattern="**/" + file_pattern)
-        result = backend.convert(rule_collection)
-        click.echo("\n\n".join(result))
+        result = backend.convert(rule_collection, format)
+        if isinstance(result, str):
+            click.echo(result)
+        else:
+            click.echo("\n\n".join(result))
     except SigmaError as e:
         click.echo("Error while conversion: " + str(e), err=True)
