@@ -66,8 +66,8 @@ def convert(target, pipeline, format, skip_unsupported, output, input, file_patt
         rule_collection = SigmaCollection.load_ruleset(input, recursion_pattern="**/" + file_pattern)
         result = backend.convert(rule_collection, format)
         if isinstance(result, str):
-            output.write(result)
+            click.echo(result, output)
         else:
-            output.write("\n\n".join(result))
+            click.echo("\n\n".join(result), output)
     except SigmaError as e:
         click.echo("Error while conversion: " + str(e), err=True)
