@@ -62,6 +62,9 @@ def convert(target, pipeline, format, skip_unsupported, output, input, file_patt
         collect_errors=skip_unsupported,
         )
 
+    if format not in backends[target].formats.keys():
+        raise click.BadParameter(f"Output format '{format}' is not supported by backend '{target}'.", param_hint="format")
+
     try:
         rule_collection = SigmaCollection.load_ruleset(input, recursion_pattern="**/" + file_pattern)
         result = backend.convert(rule_collection, format)
