@@ -1,8 +1,9 @@
 import pathlib
 import click
 
-from sigma.collection import SigmaCollection
 from sigma.exceptions import SigmaError
+
+from sigma.cli.rules import load_rules
 
 @click.command()
 @click.option(
@@ -19,11 +20,7 @@ from sigma.exceptions import SigmaError
 def check(input, file_pattern):
     """Check Sigma rules for validity and best practices (not yet implemented)."""
     try:
-        rule_collection = SigmaCollection.load_ruleset(
-            input,
-            recursion_pattern="**/" + file_pattern,
-            collect_errors=True,
-            )
+        rule_collection = load_rules(input, file_pattern)
         for rule in rule_collection.rules:
             for error in rule.errors:
                 click.echo(error)

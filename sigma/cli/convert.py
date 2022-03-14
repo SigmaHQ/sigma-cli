@@ -5,6 +5,8 @@ import click
 from sigma.conversion.base import Backend
 from sigma.collection import SigmaCollection
 from sigma.exceptions import SigmaError
+
+from sigma.cli.rules import load_rules
 from .backends import backends
 from .pipelines import pipelines
 
@@ -66,7 +68,7 @@ def convert(target, pipeline, format, skip_unsupported, output, input, file_patt
         raise click.BadParameter(f"Output format '{format}' is not supported by backend '{target}'.", param_hint="format")
 
     try:
-        rule_collection = SigmaCollection.load_ruleset(input, recursion_pattern="**/" + file_pattern)
+        rule_collection = load_rules(input, file_pattern)
         result = backend.convert(rule_collection, format)
         if isinstance(result, str):
             click.echo(result, output)
