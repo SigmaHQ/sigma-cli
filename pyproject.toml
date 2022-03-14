@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sigma-cli"
-version = "0.3.0"
+version = "0.3.1"
 description = ""
 authors = ["Thomas Patzke <thomas@patzke.org>"]
 license = "LGPL-2.1-or-later"
@@ -22,7 +22,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.8"
 click = "^8.0.3"
-pysigma = "^0.3.0"
+pysigma = "^0.4.0"
 pysigma-backend-splunk = "^0.1.1"
 pysigma-pipeline-sysmon = "^0.1.0"
 pysigma-pipeline-crowdstrike = "^0.1.0"
