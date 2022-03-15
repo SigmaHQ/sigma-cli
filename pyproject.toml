@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sigma-cli"
-version = "0.3.1"
+version = "0.3.2"
 description = ""
 authors = ["Thomas Patzke <thomas@patzke.org>"]
 license = "LGPL-2.1-or-later"
