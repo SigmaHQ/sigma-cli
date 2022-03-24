@@ -333,7 +333,7 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pysigma"
-version = "0.4.2"
+version = "0.4.3"
 description = "Sigma rule processing and conversion tools"
 category = "main"
 optional = false
@@ -345,7 +345,7 @@ pyyaml = ">=6.0,<7.0"
 
 [[package]]
 name = "pysigma-backend-splunk"
-version = "0.2.0"
+version = "0.2.2"
 description = "pySigma Splunk backend"
 category = "main"
 optional = false
@@ -908,12 +908,12 @@ pyparsing = [
     {file = "pyparsing-3.0.7.tar.gz", hash = "sha256:18ee9022775d270c55187733956460083db60b37d0d0fb357445f3094eed3eea"},
 ]
 pysigma = [
-    {file = "pySigma-0.4.2-py3-none-any.whl", hash = "sha256:fa52287ff039381374d8fb472a15d3f3e2e12afd18da1cf124e77616b2dd77e7"},
-    {file = "pySigma-0.4.2.tar.gz", hash = "sha256:0f0ac512ea8934491c1fa10b188ea4b2b57d9080f540ce0210889b778a8d95a9"},
+    {file = "pySigma-0.4.3-py3-none-any.whl", hash = "sha256:8331b2493202ff0b7989e6aab596535e4669f8182da3bcad395e8040a992ac8a"},
+    {file = "pySigma-0.4.3.tar.gz", hash = "sha256:c6311d636a2c7d1cd58e887161a26e8ed41469cc8516e6e7f4434284c053912b"},
 ]
 pysigma-backend-splunk = [
-    {file = "pysigma-backend-splunk-0.2.0.tar.gz", hash = "sha256:8934571efedca23f328d7632aff05303366f947f2997392ccb018ab4c9972e1e"},
-    {file = "pysigma_backend_splunk-0.2.0-py3-none-any.whl", hash = "sha256:d2204bacabc1643263a9e7c608f63459a2d61e0a1d4e3321c35ac90892df008e"},
+    {file = "pysigma-backend-splunk-0.2.2.tar.gz", hash = "sha256:23fd983f3556ce686e1e777f4364ff187fccc4aaceaa0aad473d0d1f2d70138a"},
+    {file = "pysigma_backend_splunk-0.2.2-py3-none-any.whl", hash = "sha256:1a42a2e5ff24702dfec115c10b08ccc67c9229ef77bdad337bbed61e08f86fca"},
 ]
 pysigma-pipeline-crowdstrike = [
     {file = "pysigma-pipeline-crowdstrike-0.1.4.tar.gz", hash = "sha256:4411f4595d03000a52a2742066977d0fe6d5aa83e7149bf66b134767b2c36a3c"},
