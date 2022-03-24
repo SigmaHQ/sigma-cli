@@ -46,12 +46,20 @@ from .pipelines import pipelines
     show_default=True,
     help="Write result to specified file. '-' writes to standard output."
 )
+@click.option(
+    "--min-time",
+    help="Minimal search time in backend-specific format. Must be supported by backend and output format."
+)
+@click.option(
+    "--max-time",
+    help="Maximal search time in backend-specific format. Must be supported by backend and output format."
+)
 @click.argument(
     "input",
     nargs=-1,
     type=click.Path(exists=True, path_type=pathlib.Path),
 )
-def convert(target, pipeline, format, skip_unsupported, output, input, file_pattern):
+def convert(target, pipeline, format, skip_unsupported, min_time, max_time, output, input, file_pattern):
     """
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
     into directories and converts all files matching the pattern in --file-pattern.
@@ -62,6 +70,8 @@ def convert(target, pipeline, format, skip_unsupported, output, input, file_patt
     backend : Backend = backend_class(
         processing_pipeline=processing_pipeline,
         collect_errors=skip_unsupported,
+        min_time=min_time,
+        max_time=max_time,
         )
 
     if format not in backends[target].formats.keys():
