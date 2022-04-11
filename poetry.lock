@@ -128,7 +128,7 @@ pyyaml = ">=6.0,<7.0"
 
 [[package]]
 name = "pysigma-backend-insightidr"
-version = "0.1.2"
+version = "0.1.3"
 description = "pySigma Rapid7 InsightIDR backend"
 category = "main"
 optional = false
@@ -139,7 +139,7 @@ pysigma = ">=0.5.0,<0.6.0"
 
 [[package]]
 name = "pysigma-backend-splunk"
-version = "0.2.3"
+version = "0.3.0"
 description = "pySigma Splunk backend"
 category = "main"
 optional = false
@@ -161,7 +161,7 @@ pysigma = ">=0.5.0,<0.6.0"
 
 [[package]]
 name = "pysigma-pipeline-sysmon"
-version = "0.1.4"
+version = "0.1.5"
 description = "pySigma Sysmon processing pipelines"
 category = "main"
 optional = false
@@ -245,7 +245,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "2dc72bdcb0bd33a3854eafbb8d22507494c1fd3d6e0818929258d4c38302c007"
+content-hash = "2d6a319630ba134e540e1dd588dcb1777b35ee112efd4f11a5744cfad3c08445"
 
 [metadata.files]
 atomicwrites = [
@@ -336,20 +336,20 @@ pysigma = [
     {file = "pySigma-0.5.0.tar.gz", hash = "sha256:b77e26fc32a05fbfa7d7e40b536d0be799fa642dc971e0e49b3b781f52e33ffc"},
 ]
 pysigma-backend-insightidr = [
-    {file = "pysigma-backend-insightidr-0.1.2.tar.gz", hash = "sha256:d825c149d4ab4006106fba97a9320ccc5d50a5a1359087a92d8fe8602113031c"},
-    {file = "pysigma_backend_insightidr-0.1.2-py3-none-any.whl", hash = "sha256:5ec8047277c10c3f217022d88ad29d4ccaa7e93ff1e5a1e8acf2aba838874bef"},
+    {file = "pysigma-backend-insightidr-0.1.3.tar.gz", hash = "sha256:77c71efdb0543d46c0a267eea3fa64e05b5825e1b852e7bde667e8d13d14729f"},
+    {file = "pysigma_backend_insightidr-0.1.3-py3-none-any.whl", hash = "sha256:7154829eba62a27092102b61d0c06ca2cc44592f0c3dc7b26ee3f1922e787164"},
 ]
 pysigma-backend-splunk = [
-    {file = "pysigma-backend-splunk-0.2.3.tar.gz", hash = "sha256:e9346894b5156e56ce63750679121a25964082e8f6de2fd17f6fd19af127063c"},
-    {file = "pysigma_backend_splunk-0.2.3-py3-none-any.whl", hash = "sha256:6949a5a4fe4a3839b6ab64e21b728d3a872dae1e9f9357ac4833e73c9a5aa4e4"},
+    {file = "pysigma-backend-splunk-0.3.0.tar.gz", hash = "sha256:fff947b219ef2d3c134807b1e4fc31405e651a8998271f42bd196c7c27784b08"},
+    {file = "pysigma_backend_splunk-0.3.0-py3-none-any.whl", hash = "sha256:9b47b68dd0040c0ad2e9c9b5a0972e292df3d8d0bbec52c038e293356c7c883a"},
 ]
 pysigma-pipeline-crowdstrike = [
     {file = "pysigma-pipeline-crowdstrike-0.1.5.tar.gz", hash = "sha256:c9e4a1b9dd74e132c407e28ac2300c5d0317e576b45f8e654454d20dd71ffe7d"},
     {file = "pysigma_pipeline_crowdstrike-0.1.5-py3-none-any.whl", hash = "sha256:2852dd8696558342400fb39f1ead24eaf8e330651e098da455d7d0dfe4da11db"},
 ]
 pysigma-pipeline-sysmon = [
-    {file = "pysigma-pipeline-sysmon-0.1.4.tar.gz", hash = "sha256:df13df55be951de8781bf5247bb787682351cac957bb2b221183f8e5a575cfd5"},
-    {file = "pysigma_pipeline_sysmon-0.1.4-py3-none-any.whl", hash = "sha256:128da83357b82c2bb35df2273d405d80b80445da1e45d8506cc6a113fe5c02c0"},
+    {file = "pysigma-pipeline-sysmon-0.1.5.tar.gz", hash = "sha256:ea5879f7ba7043965a9c00a67b23c536eb933f98b9c543f90dcff45a14bf0da3"},
+    {file = "pysigma_pipeline_sysmon-0.1.5-py3-none-any.whl", hash = "sha256:6acf0ee5b01addec1f4a619d49173b5ac8e8eec71ad2bfdf95093f3a2ea91e5b"},
 ]
 pysigma-pipeline-windows = [
     {file = "pysigma-pipeline-windows-0.1.0.tar.gz", hash = "sha256:ded0f4e8b532dfdb713867e2d23632a77638a1c3f4500465af5cab8ebee71104"},

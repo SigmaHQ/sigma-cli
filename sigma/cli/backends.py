@@ -7,7 +7,8 @@ Backend = namedtuple("Backend", ("cls", "text", "formats"))
 backends = {
     "splunk": Backend(SplunkBackend, "Splunk", {
         "default": "Plain Splunk queries",
-        "savedsearches": "Splunk savedsearches.conf"
+        "savedsearches": "Splunk savedsearches.conf",
+        "data_model": "Splunk CIM data model tstats queries",
     }),
     "insightidr": Backend(InsightIDRBackend, "Rapid7 InsightIDR", {
         "default": "Simple queries",
