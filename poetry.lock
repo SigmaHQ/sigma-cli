@@ -128,7 +128,7 @@ pyyaml = ">=6.0,<7.0"
 
 [[package]]
 name = "pysigma-backend-insightidr"
-version = "0.1.3"
+version = "0.1.4"
 description = "pySigma Rapid7 InsightIDR backend"
 category = "main"
 optional = false
@@ -139,7 +139,7 @@ pysigma = ">=0.5.0,<0.6.0"
 
 [[package]]
 name = "pysigma-backend-splunk"
-version = "0.3.0"
+version = "0.3.2"
 description = "pySigma Splunk backend"
 category = "main"
 optional = false
@@ -245,7 +245,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "2d6a319630ba134e540e1dd588dcb1777b35ee112efd4f11a5744cfad3c08445"
+content-hash = "df1a6500ab8df2c675d605cc207aaced2a70bdf6b2a16aaca5661119815f5ef0"
 
 [metadata.files]
 atomicwrites = [
@@ -336,12 +336,12 @@ pysigma = [
     {file = "pySigma-0.5.0.tar.gz", hash = "sha256:b77e26fc32a05fbfa7d7e40b536d0be799fa642dc971e0e49b3b781f52e33ffc"},
 ]
 pysigma-backend-insightidr = [
-    {file = "pysigma-backend-insightidr-0.1.3.tar.gz", hash = "sha256:77c71efdb0543d46c0a267eea3fa64e05b5825e1b852e7bde667e8d13d14729f"},
-    {file = "pysigma_backend_insightidr-0.1.3-py3-none-any.whl", hash = "sha256:7154829eba62a27092102b61d0c06ca2cc44592f0c3dc7b26ee3f1922e787164"},
+    {file = "pysigma-backend-insightidr-0.1.4.tar.gz", hash = "sha256:47e428050da09e629f7b626f0f0a416d5b353f8f4b55c976555ef90e88e96df7"},
+    {file = "pysigma_backend_insightidr-0.1.4-py3-none-any.whl", hash = "sha256:66fa690ca59ede9feb14aac3de10caed070c90f8f473dc156bfab2df8eadd536"},
 ]
 pysigma-backend-splunk = [
-    {file = "pysigma-backend-splunk-0.3.0.tar.gz", hash = "sha256:fff947b219ef2d3c134807b1e4fc31405e651a8998271f42bd196c7c27784b08"},
-    {file = "pysigma_backend_splunk-0.3.0-py3-none-any.whl", hash = "sha256:9b47b68dd0040c0ad2e9c9b5a0972e292df3d8d0bbec52c038e293356c7c883a"},
+    {file = "pysigma-backend-splunk-0.3.2.tar.gz", hash = "sha256:9f554910a4bc1c612b9da9e5914debee69dce59563365898c87b4ded8a0535fa"},
+    {file = "pysigma_backend_splunk-0.3.2-py3-none-any.whl", hash = "sha256:f7cecdf4ec59ae42993bff6ef877a8fea1f0acb011a5a061407723dcd019af64"},
 ]
 pysigma-pipeline-crowdstrike = [
     {file = "pysigma-pipeline-crowdstrike-0.1.5.tar.gz", hash = "sha256:c9e4a1b9dd74e132c407e28ac2300c5d0317e576b45f8e654454d20dd71ffe7d"},
