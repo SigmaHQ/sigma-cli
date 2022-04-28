@@ -22,7 +22,7 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "click"
-version = "8.1.2"
+version = "8.1.3"
 description = "Composable command line interface toolkit"
 category = "main"
 optional = false
@@ -116,7 +116,7 @@ diagrams = ["railroad-diagrams", "jinja2"]
 
 [[package]]
 name = "pysigma"
-version = "0.5.0"
+version = "0.5.2"
 description = "Sigma rule processing and conversion tools"
 category = "main"
 optional = false
@@ -128,7 +128,7 @@ pyyaml = ">=6.0,<7.0"
 
 [[package]]
 name = "pysigma-backend-insightidr"
-version = "0.1.4"
+version = "0.1.5"
 description = "pySigma Rapid7 InsightIDR backend"
 category = "main"
 optional = false
@@ -257,8 +257,8 @@ attrs = [
     {file = "attrs-21.4.0.tar.gz", hash = "sha256:626ba8234211db98e869df76230a137c4c40a12d72445c45d5f5b716f076e2fd"},
 ]
 click = [
-    {file = "click-8.1.2-py3-none-any.whl", hash = "sha256:24e1a4a9ec5bf6299411369b208c1df2188d9eb8d916302fe6bf03faed227f1e"},
-    {file = "click-8.1.2.tar.gz", hash = "sha256:479707fe14d9ec9a0757618b7a100a0ae4c4e236fac5b7f80ca68028141a1a72"},
+    {file = "click-8.1.3-py3-none-any.whl", hash = "sha256:bb4d8133cb15a609f44e8213d9b391b0809795062913b383c62be0ee95b1db48"},
+    {file = "click-8.1.3.tar.gz", hash = "sha256:7682dc8afb30297001674575ea00d1814d808d6a36af415a82bd481d37ba7b8e"},
 ]
 colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
@@ -332,12 +332,12 @@ pyparsing = [
     {file = "pyparsing-3.0.8.tar.gz", hash = "sha256:7bf433498c016c4314268d95df76c81b842a4cb2b276fa3312cfb1e1d85f6954"},
 ]
 pysigma = [
-    {file = "pySigma-0.5.0-py3-none-any.whl", hash = "sha256:1311a83e3a8bc32791bac4faad9e0204636eb4874ee392918f7c0ab903bdc487"},
-    {file = "pySigma-0.5.0.tar.gz", hash = "sha256:b77e26fc32a05fbfa7d7e40b536d0be799fa642dc971e0e49b3b781f52e33ffc"},
+    {file = "pySigma-0.5.2-py3-none-any.whl", hash = "sha256:d6de3d4b343629591fea69fb5603194992ab6b302b8c9d35b98f3625cb08e51f"},
+    {file = "pySigma-0.5.2.tar.gz", hash = "sha256:cdee5ef1a8b2d2ba68aae64789ef3ecf10974d2988ef6350e3dec8cd27f707ff"},
 ]
 pysigma-backend-insightidr = [
-    {file = "pysigma-backend-insightidr-0.1.4.tar.gz", hash = "sha256:47e428050da09e629f7b626f0f0a416d5b353f8f4b55c976555ef90e88e96df7"},
-    {file = "pysigma_backend_insightidr-0.1.4-py3-none-any.whl", hash = "sha256:66fa690ca59ede9feb14aac3de10caed070c90f8f473dc156bfab2df8eadd536"},
+    {file = "pysigma-backend-insightidr-0.1.5.tar.gz", hash = "sha256:93a7814fe930ce0a9b706cde03a69559cbfde038f35319c16ba19d82af2d506c"},
+    {file = "pysigma_backend_insightidr-0.1.5-py3-none-any.whl", hash = "sha256:b160428ce4bcd01726db539aff41681cae05fcd8a78360652b04f2d67152166f"},
 ]
 pysigma-backend-splunk = [
     {file = "pysigma-backend-splunk-0.3.2.tar.gz", hash = "sha256:9f554910a4bc1c612b9da9e5914debee69dce59563365898c87b4ded8a0535fa"},
