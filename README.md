@@ -57,6 +57,29 @@ sigma convert -t splunk -f savedsearches -p sysmon -o savedsearches.conf sigma/r
 
 Outputs a Splunk savedsearches.conf containing the converted searches.
 
+### Integration of Backends and Pipelines
+
+Backends and pipelines can be integrated by adding the corresponding packages as dependency with:
+
+```
+poetry add <package name>
+```
+
+A backend has to be added to the `backends` dict in `sigma/cli/backends.py` by creation of a `Backend` named tuple with
+the following parameters:
+
+* The backend class.
+* A display name shown to the user in the targets list (`sigma list targets`).
+* A dict that maps output format names (used in `-f` parameter) to descriptions of the formats that are shown in the
+  format list (`sigma list formats <backend>`). The formats must be supported by the backend!
+
+The dict key is the name used in the `-t` parameter.
+
+A processing pipeline is defined in the `pipelines` variable dict in `sigma/cli/pipelines.py`. The variable contains a
+`ProcessingPipelineResolver` that is instantiated with a dict that maps identifiers that can
+be used in the `-p` parameter to functions that return `ProcessingPipeline` objects. The descriptive text shown in the pipeline list (`sigma list pipelines`) is provided from
+the `name` attribute of the `ProcessingPipeline` object.
+
 ## Maintainers
 
 The project is currently maintained by:
