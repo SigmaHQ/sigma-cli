@@ -1,6 +1,7 @@
 from collections import namedtuple
 from sigma.backends.splunk import SplunkBackend
 from sigma.backends.insight_idr import InsightIDRBackend
+from sigma.backends.qradar import QradarBackend
 
 Backend = namedtuple("Backend", ("cls", "text", "formats"))
 
@@ -14,5 +15,9 @@ backends = {
         "default": "Simple queries",
         "leql_advanced_search": "Advanced queries",
         "leql_detection_definition": "LEQL detection rule logic format",
+    }),
+    "qradar": Backend(QradarBackend, "IBM QRadar", {
+        "default": "Plain QRadar AQL queries",
+        "extension": "QRadar extensions ZIP package",
     }),
 }

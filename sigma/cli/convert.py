@@ -41,10 +41,17 @@ from .pipelines import pipelines
 )
 @click.option(
     "--output", "-o",
-    type=click.File("w"),
+    type=click.File("wb"),
     default="-",
     show_default=True,
     help="Write result to specified file. '-' writes to standard output."
+)
+@click.option(
+    "--encoding", "-e",
+    type=str,
+    default="utf-8",
+    show_default=True,
+    help="Output encoding for string backend outputs. This is ignored for backends that return binary output."
 )
 @click.option(
     "--min-time",
@@ -59,7 +66,7 @@ from .pipelines import pipelines
     nargs=-1,
     type=click.Path(exists=True, path_type=pathlib.Path),
 )
-def convert(target, pipeline, format, skip_unsupported, min_time, max_time, output, input, file_pattern):
+def convert(target, pipeline, format, skip_unsupported, min_time, max_time, output, encoding, input, file_pattern):
     """
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
     into directories and converts all files matching the pattern in --file-pattern.
@@ -81,8 +88,15 @@ def convert(target, pipeline, format, skip_unsupported, min_time, max_time, outp
         rule_collection = load_rules(input, file_pattern)
         result = backend.convert(rule_collection, format)
         if isinstance(result, str):
-            click.echo(result, output)
+            click.echo(bytes(result, encoding), output)
+        if isinstance(result, bytes):
+            if output.isatty():
+                raise click.UsageError("Backend returns binary output. Please provide output file with --output/-o.")
+            else:
+                click.echo(result, output)
+        elif isinstance(result, list):
+            click.echo(bytes("\n\n".join(result), encoding), output)
         else:
-            click.echo("\n\n".join(result), output)
+            click.echo(f"Backend returned unexpected format {str(type(result))}", err=True)
     except SigmaError as e:
         click.echo("Error while conversion: " + str(e), err=True)
