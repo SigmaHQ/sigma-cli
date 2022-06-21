@@ -116,7 +116,7 @@ diagrams = ["railroad-diagrams", "jinja2"]
 
 [[package]]
 name = "pysigma"
-version = "0.6.2"
+version = "0.6.3"
 description = "Sigma rule processing and conversion tools"
 category = "main"
 optional = false
@@ -352,8 +352,8 @@ pyparsing = [
     {file = "pyparsing-3.0.9.tar.gz", hash = "sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb"},
 ]
 pysigma = [
-    {file = "pySigma-0.6.2-py3-none-any.whl", hash = "sha256:c76108121cb2bc27eee8637a8334e2749c1d81b7ca84d9090537af09076c6cea"},
-    {file = "pySigma-0.6.2.tar.gz", hash = "sha256:d488de08edf6fd6ddf2e20770cf0acfa42c6867b5b7edbc6ef80cbba0f189da7"},
+    {file = "pySigma-0.6.3-py3-none-any.whl", hash = "sha256:42c47f945151cba9c59c1015eeed480a5553aee0b77c9baf3c0d71cec7b869cc"},
+    {file = "pySigma-0.6.3.tar.gz", hash = "sha256:7600b6f789af33dc1af1e7fc211c72a377b14894d095ed6f26622634c558d84e"},
 ]
 pysigma-backend-insightidr = [
     {file = "pysigma-backend-insightidr-0.1.6.tar.gz", hash = "sha256:73aa96d32ec27b6e30424faef4a569a41ff0a29e97ad746c265b93acf9274fce"},
