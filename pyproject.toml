@@ -29,7 +29,7 @@ pysigma-pipeline-sysmon = "^0.1.6"
 pysigma-pipeline-crowdstrike = "^0.1.6"
 pysigma-backend-insightidr = "^0.1.6"
 pysigma-pipeline-windows = "^0.1.1"
-pysigma-backend-qradar = "^0.1.2"
+pysigma-backend-qradar = "^0.1.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
