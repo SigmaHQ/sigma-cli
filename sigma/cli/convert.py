@@ -1,4 +1,5 @@
 from genericpath import exists
+import json
 import pathlib
 import click
 
@@ -54,6 +55,12 @@ from .pipelines import pipelines
     help="Output encoding for string backend outputs. This is ignored for backends that return binary output."
 )
 @click.option(
+    "--json-indent", "-j",
+    type=int,
+    default=None,
+    help="Pretty-print and indent JSON output with given indentation width per level."
+)
+@click.option(
     "--min-time",
     help="Minimal search time in backend-specific format. Must be supported by backend and output format."
 )
@@ -66,7 +73,7 @@ from .pipelines import pipelines
     nargs=-1,
     type=click.Path(exists=True, path_type=pathlib.Path),
 )
-def convert(target, pipeline, format, skip_unsupported, min_time, max_time, output, encoding, input, file_pattern):
+def convert(target, pipeline, format, skip_unsupported, min_time, max_time, output, encoding, json_indent, input, file_pattern):
     """
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
     into directories and converts all files matching the pattern in --file-pattern.
@@ -87,15 +94,28 @@ def convert(target, pipeline, format, skip_unsupported, min_time, max_time, outp
     try:
         rule_collection = load_rules(input, file_pattern)
         result = backend.convert(rule_collection, format)
-        if isinstance(result, str):
+        if isinstance(result, str):                     # String result
             click.echo(bytes(result, encoding), output)
-        if isinstance(result, bytes):
+        elif isinstance(result, bytes):                 # Bytes result: only allow to write it to file.
             if output.isatty():
                 raise click.UsageError("Backend returns binary output. Please provide output file with --output/-o.")
             else:
                 click.echo(result, output)
-        elif isinstance(result, list):
+        elif isinstance(result, list) and all((         # List of strings Concatenate with newlines in between.
+                isinstance(item, str)
+                for item in result
+            )):
             click.echo(bytes("\n\n".join(result), encoding), output)
+        elif isinstance(result, list) and all((         # List of dicts: concatenate with newline and render each result als JSON.
+                isinstance(item, dict)
+                for item in result
+            )):
+            click.echo(bytes("\n".join((
+                    json.dumps(item, indent=json_indent)
+                    for item in result
+                )), encoding), output)
+        elif isinstance(result, dict):
+            click.echo(bytes(json.dumps(result, indent=json_indent), encoding))
         else:
             click.echo(f"Backend returned unexpected format {str(type(result))}", err=True)
     except SigmaError as e:

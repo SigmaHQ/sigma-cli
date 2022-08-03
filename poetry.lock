@@ -8,17 +8,17 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "attrs"
-version = "21.4.0"
+version = "22.1.0"
 description = "Classes Without Boilerplate"
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.5"
 
 [package.extras]
-dev = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface", "furo", "sphinx", "sphinx-notfound-page", "pre-commit", "cloudpickle"]
+dev = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "mypy (>=0.900,!=0.940)", "pytest-mypy-plugins", "zope.interface", "furo", "sphinx", "sphinx-notfound-page", "pre-commit", "cloudpickle"]
 docs = ["furo", "sphinx", "zope.interface", "sphinx-notfound-page"]
-tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface", "cloudpickle"]
-tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "cloudpickle"]
+tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "mypy (>=0.900,!=0.940)", "pytest-mypy-plugins", "zope.interface", "cloudpickle"]
+tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "mypy (>=0.900,!=0.940)", "pytest-mypy-plugins", "cloudpickle"]
 
 [[package]]
 name = "click"
@@ -116,7 +116,7 @@ diagrams = ["railroad-diagrams", "jinja2"]
 
 [[package]]
 name = "pysigma"
-version = "0.6.6"
+version = "0.7.2"
 description = "Sigma rule processing and conversion tools"
 category = "main"
 optional = false
@@ -127,70 +127,94 @@ pyparsing = ">=3.0.7,<4.0.0"
 pyyaml = ">=6.0,<7.0"
 
 [[package]]
+name = "pysigma-backend-elasticsearch"
+version = "0.1.0"
+description = "pySigma Elasticsearch backend"
+category = "main"
+optional = false
+python-versions = ">=3.8,<4.0"
+
+[package.dependencies]
+pysigma = ">=0.7.1,<0.8.0"
+
+[[package]]
 name = "pysigma-backend-insightidr"
-version = "0.1.6"
+version = "0.1.7"
 description = "pySigma Rapid7 InsightIDR backend"
 category = "main"
 optional = false
 python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-pysigma = ">=0.6.2,<0.7.0"
+pysigma = ">=0.7.2,<0.8.0"
+
+[[package]]
+name = "pysigma-backend-opensearch"
+version = "0.1.2"
+description = "pySigma OpenSearch backend"
+category = "main"
+optional = false
+python-versions = ">=3.8,<4.0"
+
+[package.dependencies]
+pysigma = ">=0.7.1,<0.8.0"
+pysigma-backend-elasticsearch = ">=0.1.0,<0.2.0"
 
 [[package]]
 name = "pysigma-backend-qradar"
-version = "0.1.7"
+version = "0.1.9"
 description = "pySigma Qradar backend"
 category = "main"
 optional = false
 python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-pysigma = ">=0.6.2,<0.7.0"
+pysigma = ">=0.7.2,<0.8.0"
 
 [[package]]
 name = "pysigma-backend-splunk"
-version = "0.3.5"
+version = "0.3.6"
 description = "pySigma Splunk backend"
 category = "main"
 optional = false
 python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-pysigma = ">=0.6.0,<0.7.0"
+pysigma = ">=0.7.2,<0.8.0"
+pysigma-pipeline-sysmon = ">=1.0.0,<2.0.0"
 
 [[package]]
 name = "pysigma-pipeline-crowdstrike"
-version = "0.1.6"
+version = "0.1.7"
 description = "pySigma CrowdStrike processing pipelines"
 category = "main"
 optional = false
 python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-pysigma = ">=0.6.0,<0.7.0"
+pysigma = ">=0.7.2,<0.8.0"
 
 [[package]]
 name = "pysigma-pipeline-sysmon"
-version = "0.1.6"
+version = "1.0.0"
 description = "pySigma Sysmon processing pipelines"
 category = "main"
 optional = false
 python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-pysigma = ">=0.6.0,<0.7.0"
+pysigma = ">=0.7.2,<0.8.0"
 
 [[package]]
 name = "pysigma-pipeline-windows"
-version = "0.1.1"
+version = "1.0.0"
 description = "pySigma Windows processing pipelines"
 category = "main"
 optional = false
 python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-pysigma = ">=0.6.2,<0.7.0"
+pysigma = ">=0.7.2,<0.8.0"
 
 [[package]]
 name = "pytest"
@@ -256,14 +280,11 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "ccd76d3a9a37b2e6b9d0abb8639cfccd1a5c3349762bdf8cb2eea2ad10ae6a05"
+content-hash = "36ff8b5dd3c976b1f29b381c4b564e852e1b27a06c988486e136f9e85db5a8ad"
 
 [metadata.files]
 atomicwrites = []
-attrs = [
-    {file = "attrs-21.4.0-py2.py3-none-any.whl", hash = "sha256:2d27e3784d7a565d36ab851fe94887c5eccd6a463168875832a1be79c82828b4"},
-    {file = "attrs-21.4.0.tar.gz", hash = "sha256:626ba8234211db98e869df76230a137c4c40a12d72445c45d5f5b716f076e2fd"},
-]
+attrs = []
 click = [
     {file = "click-8.1.3-py3-none-any.whl", hash = "sha256:bb4d8133cb15a609f44e8213d9b391b0809795062913b383c62be0ee95b1db48"},
     {file = "click-8.1.3.tar.gz", hash = "sha256:7682dc8afb30297001674575ea00d1814d808d6a36af415a82bd481d37ba7b8e"},
@@ -298,24 +319,14 @@ pyparsing = [
     {file = "pyparsing-3.0.9.tar.gz", hash = "sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb"},
 ]
 pysigma = []
-pysigma-backend-insightidr = [
-    {file = "pysigma-backend-insightidr-0.1.6.tar.gz", hash = "sha256:73aa96d32ec27b6e30424faef4a569a41ff0a29e97ad746c265b93acf9274fce"},
-    {file = "pysigma_backend_insightidr-0.1.6-py3-none-any.whl", hash = "sha256:d694b87a0ffb51d3dc6ef5995defe94c12938a40b08adf64702f99a0b54e2143"},
-]
+pysigma-backend-elasticsearch = []
+pysigma-backend-insightidr = []
+pysigma-backend-opensearch = []
 pysigma-backend-qradar = []
 pysigma-backend-splunk = []
-pysigma-pipeline-crowdstrike = [
-    {file = "pysigma-pipeline-crowdstrike-0.1.6.tar.gz", hash = "sha256:51fbaf882198ca7e94eecfbd72f694929cbe313c0592bd086a66f67975e8abd9"},
-    {file = "pysigma_pipeline_crowdstrike-0.1.6-py3-none-any.whl", hash = "sha256:eac6bacce97038e7b475a790ecec37c7dded82030211b91d06015e9d9f6cfbeb"},
-]
-pysigma-pipeline-sysmon = [
-    {file = "pysigma-pipeline-sysmon-0.1.6.tar.gz", hash = "sha256:b9bb4b53c41145f3e271e1cf365fbd6f99548a676985e96bdfe367b94be03a46"},
-    {file = "pysigma_pipeline_sysmon-0.1.6-py3-none-any.whl", hash = "sha256:00b6c8a1cef9e73b041163d7fd216306011eea5c1c94165ff794cad968f39d20"},
-]
-pysigma-pipeline-windows = [
-    {file = "pysigma-pipeline-windows-0.1.1.tar.gz", hash = "sha256:87ac7f162411d7caa411ea6e4c4fc67c257d2230547f94c22e7d9f7fa30c0dc9"},
-    {file = "pysigma_pipeline_windows-0.1.1-py3-none-any.whl", hash = "sha256:23a974dac77cb9dccaaec54918b605c5abc1d8ff732abeab6109702a2815f7a6"},
-]
+pysigma-pipeline-crowdstrike = []
+pysigma-pipeline-sysmon = []
+pysigma-pipeline-windows = []
 pytest = [
     {file = "pytest-6.2.5-py3-none-any.whl", hash = "sha256:7310f8d27bc79ced999e760ca304d69f6ba6c6649c0b60fb0e04a4a77cacc134"},
     {file = "pytest-6.2.5.tar.gz", hash = "sha256:131b36680866a76e6781d13f101efb86cf674ebb9762eb70d3082b6f29889e89"},
