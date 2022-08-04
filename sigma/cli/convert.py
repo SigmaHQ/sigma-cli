@@ -71,6 +71,7 @@ from .pipelines import pipelines
 @click.argument(
     "input",
     nargs=-1,
+    required=True,
     type=click.Path(exists=True, path_type=pathlib.Path),
 )
 def convert(target, pipeline, format, skip_unsupported, min_time, max_time, output, encoding, json_indent, input, file_pattern):
