@@ -3,10 +3,21 @@ import pytest
 from sigma.cli.convert import convert
 from sigma.cli.backends import backends
 
-def test_convert_output_list():
+def test_convert_output_list_of_str():
     cli = CliRunner()
     result = cli.invoke(convert, ["-t", "splunk", "-p", "sysmon", "tests/files"])
     assert 'EventID=1 ParentImage="*\\\\httpd.exe" Image="*\\\\cmd.exe"' in result.stdout
+
+def test_convert_output_list_of_dict():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "elasticsearch", "-p", "sysmon", "-f", "dsl_lucene", "tests/files"])
+    assert 'EventID:1' in result.stdout
+
+def test_convert_output_list_of_dict_indent():
+    cli = CliRunner()
+    result_noindent = cli.invoke(convert, ["-t", "elasticsearch", "-p", "sysmon", "-f", "dsl_lucene", "tests/files"])
+    result_indent = cli.invoke(convert, ["-t", "elasticsearch", "-p", "sysmon", "-f", "dsl_lucene", "-j", "2", "tests/files"])
+    assert len(result_indent.stdout.split("\n")) > len(result_noindent.stdout.split("\n"))
 
 def test_convert_output_str():
     cli = CliRunner()
@@ -42,3 +53,8 @@ def test_conversion_all_backends_and_formats(backend, format):
     cli = CliRunner()
     result = cli.invoke(convert, ["-t", backend, "-f", format, "tests/files"])
     assert result.exit_code == 0 and len(result.stdout) > 60
+
+def test_convert_missing_input():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "splunk", "-p", "sysmon"])
+    assert 'Missing argument' in result.stdout
