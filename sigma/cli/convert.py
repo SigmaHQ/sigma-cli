@@ -120,3 +120,8 @@ def convert(target, pipeline, format, skip_unsupported, min_time, max_time, outp
             click.echo(f"Backend returned unexpected format {str(type(result))}", err=True)
     except SigmaError as e:
         click.echo("Error while conversion: " + str(e), err=True)
+
+    if len(backend.errors) > 0:
+        click.echo("\nIgnored errors:", err=True)
+        for rule, error in backend.errors:
+            click.echo(f"{str(rule.source)}: {str(error)}", err=True)
