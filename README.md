@@ -17,6 +17,10 @@ The easiest way to install the Sigma CLI is via *pipx* or *pip*. For this purpos
 python -m pipx install sigma-cli
 python -m pip install sigma-cli
 ```
+on macOS use
+```
+python3 -m pip install sigma-cli
+```
 
 Another way is to run this from source in a virtual environment managed by [Poetry](https://python-poetry.org/docs/basic-usage/):
 
