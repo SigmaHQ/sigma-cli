@@ -96,10 +96,14 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
         and pipeline == () \
         and not without_pipeline:
         raise click.UsageError(textwrap.dedent(f"""
-        Processing pipeline required by backend! Define a custom pipeline or choose predefined (sigms list pipelines {target}).
+        Processing pipeline required by backend! Define a custom pipeline or choose a predefined one.
+        
+        Get all available pipelines for {target} with:
+           sigma list pipelines {target}
+        
         If you never heard about processing pipelines you should get familiar with them
-        (https://sigmahq-pysigma.readthedocs.io/en/latest/Processing_Pipelines.html). If you know what you're doing add
-        --without-pipeline to your command line to suppress this error.
+        (https://sigmahq-pysigma.readthedocs.io/en/latest/Processing_Pipelines.html). 
+        If you know what you're doing add --without-pipeline to your command line to suppress this error.
         """))
 
     # Check if pipelines match to backend
