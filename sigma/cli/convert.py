@@ -1,6 +1,7 @@
 from genericpath import exists
 import json
 import pathlib
+import textwrap
 import click
 
 from sigma.conversion.base import Backend
@@ -9,7 +10,7 @@ from sigma.exceptions import SigmaError
 
 from sigma.cli.rules import load_rules
 from .backends import backends
-from .pipelines import pipelines
+from .pipelines import pipeline_resolver, pipelines
 
 @click.command()
 @click.option(
@@ -22,6 +23,17 @@ from .pipelines import pipelines
     "--pipeline", "-p",
     multiple=True,
     help="Specify processing pipelines as identifiers (list pipelines) or YAML files",
+)
+@click.option(
+    "--without-pipeline", "-P",
+    is_flag=True,
+    default=False,
+    help="Proceed with conversion without processing pipeline, even if it is mandatory for the target.",
+)
+@click.option(
+    "--pipeline-check/--disable-pipeline-check",
+    default=True,
+    help="Verify if a pipeline is used that is intended for another backend.",
 )
 @click.option(
     "--format", "-f",
@@ -74,14 +86,40 @@ from .pipelines import pipelines
     required=True,
     type=click.Path(exists=True, path_type=pathlib.Path),
 )
-def convert(target, pipeline, format, skip_unsupported, min_time, max_time, output, encoding, json_indent, input, file_pattern):
+def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_unsupported, min_time, max_time, output, encoding, json_indent, input, file_pattern):
     """
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
     into directories and converts all files matching the pattern in --file-pattern.
     """
+    # Check if pipeline is required
+    if backends[target].requires_pipeline \
+        and pipeline == () \
+        and not without_pipeline:
+        raise click.UsageError(textwrap.dedent(f"""
+        Processing pipeline required by backend! Define a custom pipeline or choose predefined (sigms list pipelines {target}).
+        If you never heard about processing pipelines you should get familiar with them
+        (https://sigmahq-pysigma.readthedocs.io/en/latest/Processing_Pipelines.html). If you know what you're doing add
+        --without-pipeline to your command line to suppress this error.
+        """))
+
+    # Check if pipelines match to backend
+    if pipeline_check:
+        wrong_pipelines = [
+            p
+            for p in pipeline
+            if not (pipelines[p].backends == () or target in pipelines[p].backends)
+        ]
+        if len(wrong_pipelines) > 0:
+            raise click.UsageError(textwrap.dedent(f"""
+            The following pipelines are not intended to be used with the target {target}: { ", ".join(wrong_pipelines)}.
+            You can list all pipelines that are intended to be used with this target with (sigms list pipelines
+            {target}). If you know what you're doing and want to use this pipeline(s) in this conversion, disable this
+            check with --disable-pipeline-check.
+            """))
+
     # Initialize processing pipeline and backend
     backend_class = backends[target].cls
-    processing_pipeline = pipelines.resolve(pipeline)
+    processing_pipeline = pipeline_resolver.resolve(pipeline)
     backend : Backend = backend_class(
         processing_pipeline=processing_pipeline,
         collect_errors=skip_unsupported,

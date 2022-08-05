@@ -51,10 +51,30 @@ def test_convert_unknown_format():
 ])
 def test_conversion_all_backends_and_formats(backend, format):
     cli = CliRunner()
-    result = cli.invoke(convert, ["-t", backend, "-f", format, "tests/files"])
+    result = cli.invoke(convert, ["-t", backend, "-f", format, "--without-pipeline", "tests/files"])
     assert result.exit_code == 0 and len(result.stdout) > 60
 
 def test_convert_missing_input():
     cli = CliRunner()
     result = cli.invoke(convert, ["-t", "splunk", "-p", "sysmon"])
     assert 'Missing argument' in result.stdout
+
+def test_convert_missing_pipeline():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "splunk", "tests/files"])
+    assert result.exit_code > 0 and "pipeline required" in result.stdout
+
+def test_convert_missing_pipeline_ignore():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "splunk", "--without-pipeline", "tests/files"])
+    assert 'ParentImage="*\\\\httpd.exe" Image="*\\\\cmd.exe"' in result.stdout
+
+def test_convert_wrong_pipeline():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "splunk", "-p", "ecs_windows", "tests/files"])
+    assert result.exit_code > 0 and "pipelines are not intended" in result.stdout
+
+def test_convert_wrong_pipeline_ignore():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "splunk", "-p", "ecs_windows", "--disable-pipeline-check", "tests/files"])
+    assert "process.executable" in result.stdout

@@ -23,3 +23,9 @@ def test_format_list():
         and len(cli_list.output.split()) >= 5 \
         and counts["|"] >= 6 \
         and counts["-"] >= 40
+
+def test_pipeline_list_with_backend():
+    cli = CliRunner()
+    list_all = cli.invoke(list_pipelines).stdout.split("\n")
+    list_filtered = cli.invoke(list_pipelines, ["splunk"]).stdout.split("\n")
+    assert len(list_all) > len(list_filtered)
