@@ -101,7 +101,7 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
         Get all available pipelines for {target} with:
            sigma list pipelines {target}
         
-        If you are a developer and never heard about processing pipelines you should get familiar with them
+        If you never heard about processing pipelines you should get familiar with them
         (https://sigmahq-pysigma.readthedocs.io/en/latest/Processing_Pipelines.html). 
         If you know what you're doing add --without-pipeline to your command line to suppress this error.
         """))
