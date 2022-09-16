@@ -32,6 +32,7 @@ pysigma-pipeline-windows = "^1.0.0"
 pysigma-backend-qradar = "^0.1.9"
 pysigma-backend-elasticsearch = "^0.1.0"
 pysigma-backend-opensearch = "^0.1.0"
+pysigma-backend-matano = { git = "https://github.com/matanolabs/pySigma-backend-matano" }
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"

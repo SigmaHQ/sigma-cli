@@ -4,6 +4,7 @@ from sigma.backends.insight_idr import InsightIDRBackend
 from sigma.backends.qradar import QradarBackend
 from sigma.backends.elasticsearch import LuceneBackend
 from sigma.backends.opensearch import OpensearchLuceneBackend
+from sigma.backends.matano import MatanoPythonBackend
 
 Backend = namedtuple("Backend", ("cls", "text", "formats", "requires_pipeline"))
 
@@ -32,5 +33,9 @@ backends = {
         "dashboards_ndjson": "OpenSearch Dashboards NDJSON import file with Lucene queries",
         "monitor_rule": "OpenSearch monitor rule with embedded Lucene query",
         "dsl_lucene": "OpenSearch query DSL with embedded Lucene queries",
+    }, True),
+    "matano": Backend(MatanoPythonBackend, "Matano", {
+        "default": "Plain Matano Python detections",
+        "detection": "Matano detection directories for deployment.",
     }, True),
 }
