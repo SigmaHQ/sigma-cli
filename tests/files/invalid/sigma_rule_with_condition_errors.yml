@@ -1,0 +1,10 @@
+title: Test rule
+id: 5013332f-8a70-4e04-bcc1-06a98a2cca2e
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\httpd.exe'
+    Image|endswith: '\cmd.exe'
+  condition: selection | count() > 5

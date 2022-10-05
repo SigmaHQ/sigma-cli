@@ -1,0 +1,10 @@
+title: Test
+id: invalid
+level: invalid
+status: invalid
+date: invalid
+detections:
+detection:
+    selection_1:
+        Image|test: test.exe
+    condition: selection

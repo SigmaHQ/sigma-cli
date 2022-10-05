@@ -1,0 +1,6 @@
+validators:
+    - all
+    - -tlptag
+    - -tlpv1_tag
+exclusions:
+    5013332f-8a70-4e04-bcc1-06a98a2cca2e: wildcards_instead_of_modifiers

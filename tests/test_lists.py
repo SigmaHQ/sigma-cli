@@ -1,7 +1,8 @@
 from typing import Counter
 import pytest
 from click.testing import CliRunner
-from sigma.cli.list import list_pipelines, list_targets, list_formats
+from sigma.cli.list import list_pipelines, list_targets, list_formats, list_validators
+from sigma.validators import validators
 
 @pytest.fixture(params=[list_targets, list_pipelines], ids=["targets", "pipelines"])
 def cli_list(request):
@@ -29,3 +30,11 @@ def test_pipeline_list_with_backend():
     list_all = cli.invoke(list_pipelines).stdout.split("\n")
     list_filtered = cli.invoke(list_pipelines, ["splunk"]).stdout.split("\n")
     assert len(list_all) > len(list_filtered)
+
+def test_validator_list():
+    cli = CliRunner()
+    result = cli.invoke(list_validators)
+    assert all((
+        validator_name in result.stdout
+        for validator_name in validators.keys()
+    ))
