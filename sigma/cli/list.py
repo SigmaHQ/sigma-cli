@@ -1,7 +1,9 @@
 import click
 from .backends import backends
 from .pipelines import pipelines, pipeline_resolver
+from sigma.validators import validators
 from prettytable import PrettyTable
+from textwrap import dedent
 
 @click.group(name="list", help="List available targets or processing pipelines.")
 def list_group():
@@ -51,4 +53,16 @@ def list_pipelines(backend):
                 backends = "all"
             table.add_row((name, pipeline.priority, pipeline.name, backends))
     table.align = "l"
+    click.echo(table.get_string())
+
+@list_group.command(name="validators", help="List rule validators.")
+def list_validators():
+    table = PrettyTable(
+        field_names=("Name", "Description",),
+        align="l",
+    )
+    table.add_rows([
+        (name, dedent(validator.__doc__ or "-").strip())
+        for name, validator in validators.items()
+    ])
     click.echo(table.get_string())
