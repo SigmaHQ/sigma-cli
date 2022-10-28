@@ -4,13 +4,14 @@ FROM python:3-alpine
 # Set Environment Variables
 ENV PUID=1000
 ENV PGID=1000
+ENV USER=abc
 
 # Add Non-Root User
 RUN set -eux; \
-  echo "**** create abc user and make our folders ****" && \
-  #groupmod -g $PGID users && \
-  useradd -u $PUID -U -d /opt/sigma -s /bin/false abc && \
-  usermod -G users abc
+  echo "**** create $USER user and $USER group with home directory /opt/sigma ****" && \
+  addgroup -S $USER && \
+  adduser -u $PUID -s /bin/false -h /opt/sigma -S -G $USER $USER && \
+  adduser $USER users
   
   
 # Add Files
