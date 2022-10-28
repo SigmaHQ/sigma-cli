@@ -31,6 +31,12 @@ poetry install
 poetry shell
 ```
 
+### Docker Usage
+docker pull docker pull ghcr.io/sigmaHQ/sigma-cli/sigma-cli:latest
+docker run \
+ -v <sigma-repo-folder>/rules:/opt/sigma/rules
+ convert -t -t <backend> -p <processing pipeline 1> -p <processing pipeline 2> [...] /opt/sigma/rules
+
 ### Usage
 
 The CLI is available as *sigma* command. A typical invocation is:
