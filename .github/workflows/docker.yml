@@ -36,7 +36,7 @@ jobs:
           #  $DOCKER_REPO/$NAME
           images: |
             name=PLEASECHANGE/sigma-cli,enable=false
-            name=ghcr.io/${GITHUB_REPOSITORY}/${{NAME}},enable=true
+            name=ghcr.io/${GITHUB_REPOSITORY}/${{env.NAME}},enable=true
           # generate Docker tags based on the following events/attributes
           tags: |
             type=schedule
