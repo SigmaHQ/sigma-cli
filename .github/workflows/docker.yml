@@ -35,8 +35,8 @@ jobs:
           # https://github.com/docker/build-push-action/blob/master/docs/advanced/push-multi-registries.md
           #  $DOCKER_REPO/$NAME
           images: |
-            name=PLEASECHANGE/sigma-cli,enable=false
-            name=ghcr.io/${{env.GITHUB_REPOSITORY}}/${{env.NAME}},enable=true
+            name=${{env.DOCKER_REPO}}/${{env.NAME}},enable=false
+            name=ghcr.io/${{env.GITHUB_REPO}}/${{env.NAME}},enable=true
           # generate Docker tags based on the following events/attributes
           tags: |
             type=schedule
