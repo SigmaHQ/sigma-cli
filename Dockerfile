@@ -12,8 +12,7 @@ RUN set -eux; \
   addgroup -S $USER && \
   adduser -u $PUID -s /bin/false -h /opt/sigma -S -G $USER $USER && \
   adduser $USER users
-  
-  
+
 # Add Files
 COPY sigma/cli /opt/sigma/
 
@@ -22,7 +21,7 @@ WORKDIR /opt/sigma-cli
 
 # Install Python Modules
 RUN set -eux; \
-  python -m pipx install sigma-cli; \
+  python -m pip install sigma-cli; \
   chmod -R abc. /opt/sigma;
 
 # Use sigma as entrypoint
