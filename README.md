@@ -31,11 +31,15 @@ poetry install
 poetry shell
 ```
 
-### Docker Usage
-docker pull docker pull ghcr.io/sigmaHQ/sigma-cli/sigma-cli:latest
-docker run \
- -v <sigma-repo-folder>/rules:/opt/sigma/rules
- convert -t -t <backend> -p <processing pipeline 1> -p <processing pipeline 2> [...] /opt/sigma/rules
+The third way is via an docker container:
+```
+# Download the sigma rules:
+git clone https://github.com/SigmaHQ/sigma.git
+# Add an alias:
+echo "alias sigma='docker run -v $PWD/sigma/rules:/opt/sigma/rules ghcr.io/SigmaHQ/sigma-cli/sigma-cli:latest'" >> ~/.bashrc
+# Use sigma:
+sigma convert -t <backend> -p <processing pipeline 1> -p <processing pipeline 2> [...] /opt/sigma/rules
+```
 
 ### Usage
 
