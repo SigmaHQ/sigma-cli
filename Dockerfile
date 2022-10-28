@@ -8,11 +8,9 @@ ENV PGID=1000
 # Add Non-Root User
 RUN set -eux; \
   echo "**** create abc user and make our folders ****" && \
-  groupmod -g $PGID users && \
-  useradd -u $PUID -U -d /config -s /bin/false abc && \
-  usermod -G users abc && \
-  mkdir -p /opt/sigma && \
-  chmod -R abc. /opt/sigma
+  #groupmod -g $PGID users && \
+  useradd -u $PUID -U -d /opt/sigma -s /bin/false abc && \
+  usermod -G users abc
   
   
 # Add Files
