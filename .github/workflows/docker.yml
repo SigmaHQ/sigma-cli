@@ -3,7 +3,7 @@
 # with thedescribed scope in the documentation: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry
 #
 
-name: Release to Github Docker Package
+name: Build and Release Docker Package
 on:
   release:
     types: [published]
