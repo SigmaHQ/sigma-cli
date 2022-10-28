@@ -8,7 +8,8 @@ WORKDIR /opt/sigma-cli
 
 # Install Python Modules
 RUN set -eux; \
-  python -m pipx install sigma-cli; \
+  python -m pipx install sigma-cli;
 
-# Execute sigma
-CMD ["sigma"]
+# Use sigma as entrypoint
+ENTRYPOINT ["sigma"]
+
