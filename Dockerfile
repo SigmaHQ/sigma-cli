@@ -21,8 +21,7 @@ WORKDIR /opt/sigma-cli
 
 # Install Python Modules
 RUN set -eux; \
-  python -m pip install sigma-cli; \
-  chmod -R abc. /opt/sigma;
+  python -m pip install sigma-cli;
 
 # Use sigma as entrypoint
 ENTRYPOINT ["sigma"]
