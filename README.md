@@ -36,7 +36,7 @@ The third way is via an docker container:
 # Download the sigma rules:
 git clone https://github.com/SigmaHQ/sigma.git
 # Add an alias:
-echo "alias sigma='docker run -v $PWD/sigma/rules:/opt/sigma/rules ghcr.io/sigmahq/sigma-cli/sigma-cli:latest'" >> ~/.bashrc
+echo "alias sigma='docker run -ti -v $PWD/sigma/rules:/opt/sigma/rules ghcr.io/sigmahq/sigma-cli/sigma-cli:latest'" >> ~/.bashrc
 # Use sigma:
 sigma convert -t <backend> -p <processing pipeline 1> -p <processing pipeline 2> [...] /opt/sigma/rules
 ```
