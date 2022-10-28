@@ -2,7 +2,7 @@
 FROM python:3-alpine
 
 # Add Files
-COPY sigma-cli /opt/sigma-cli
+COPY sigma-cli /opt/
 # Change Directory
 WORKDIR /opt/sigma-cli
 
