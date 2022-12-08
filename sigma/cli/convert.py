@@ -111,7 +111,7 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
         wrong_pipelines = [
             p
             for p in pipeline
-            if not (pipelines[p].backends == () or target in pipelines[p].backends)
+            if pipelines.get(p, False) and not (pipelines[p].backends == () or target in pipelines[p].backends)
         ]
         if len(wrong_pipelines) > 0:
             raise click.UsageError(textwrap.dedent(f"""
