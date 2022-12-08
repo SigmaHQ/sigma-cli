@@ -1,0 +1,7 @@
+name: Custom Pipeline
+priority: 100
+transformations:
+  - id: field_mapping
+    type: field_name_mapping
+    mapping:
+      ParentImage: some_other_string

@@ -78,3 +78,9 @@ def test_convert_wrong_pipeline_ignore():
     cli = CliRunner()
     result = cli.invoke(convert, ["-t", "splunk", "-p", "ecs_windows", "--disable-pipeline-check", "tests/files/valid"])
     assert "process.executable" in result.stdout
+
+def test_yml_pipeline_doesnt_trigger_wrong_pipeline():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "splunk", "-p", "splunk_windows", "-p", "tests/files/custom_pipeline.yml", "tests/files/valid"])
+    print(result.stdout)
+    assert "some_other_string" in result.stdout
