@@ -6,7 +6,10 @@ from prettytable import PrettyTable
 from sigma.exceptions import SigmaConditionError, SigmaError
 from sigma.cli.rules import load_rules
 from sigma.validation import SigmaValidator
-from sigma.validators import validators
+from sigma.plugins import InstalledSigmaPlugins
+
+plugins = InstalledSigmaPlugins.autodiscover()
+validators = plugins.validators
 
 @click.command()
 @click.option(

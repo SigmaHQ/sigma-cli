@@ -23,15 +23,7 @@ packages = [
 python = "^3.8"
 click = "^8.0.3"
 prettytable = "^3.1.1"
-pysigma = "^0.8.4"
-pysigma-backend-splunk = "^0.3.7"
-pysigma-pipeline-sysmon = "^1.0.1"
-pysigma-pipeline-crowdstrike = "^0.1.8"
-pysigma-backend-insightidr = "^0.1.8"
-pysigma-pipeline-windows = "^1.0.1"
-pysigma-backend-qradar = "^0.2.1"
-pysigma-backend-elasticsearch = "^0.1.0"
-pysigma-backend-opensearch = "^0.1.0"
+pysigma = "^0.9.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
