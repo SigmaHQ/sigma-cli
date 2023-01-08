@@ -110,11 +110,16 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
         """))
 
     # Check if pipelines match to backend
+    pipeline_resolver = plugins.get_pipeline_resolver()
     if pipeline_check:
-        wrong_pipelines = [
-            p
+        resolved_pipelines = {
+            p: pipeline_resolver.resolve_pipeline(p)
             for p in pipeline
-            if not (pipelines[p].allowed_backends == () or target in pipelines[p].allowed_backends)
+        }
+        wrong_pipelines = [
+            id
+            for id, p in resolved_pipelines.items()
+            if not (len(p.allowed_backends) == 0 or target in p.allowed_backends)
         ]
         if len(wrong_pipelines) > 0:
             raise click.UsageError(textwrap.dedent(f"""
@@ -125,8 +130,7 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
             """))
 
     # Initialize processing pipeline and backend
-    backend_class = backends[target].cls
-    pipeline_resolver = plugins.get_pipeline_resolver()
+    backend_class = backends[target]
     processing_pipeline = pipeline_resolver.resolve(pipeline)
     backend : Backend = backend_class(
         processing_pipeline=processing_pipeline,
