@@ -30,8 +30,8 @@ pysigma-pipeline-crowdstrike = "^0.1.8"
 pysigma-backend-insightidr = "^0.1.8"
 pysigma-pipeline-windows = "^1.0.1"
 pysigma-backend-qradar = "^0.2.1"
-pysigma-backend-elasticsearch = "^0.1.0"
-pysigma-backend-opensearch = "^0.1.0"
+pysigma-backend-elasticsearch = "^0.2.0"
+pysigma-backend-opensearch = "^0.1.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
