@@ -92,12 +92,13 @@ def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues)
         click.echo(f"Found {rule_error_count} errors, { cond_error_count } condition errors and { issue_count } issues.")
 
         if rule_error_count > 0:
+            click.echo("\nRule error summary:")
             rule_error_table = PrettyTable(
                 field_names=("Count", "Rule Error"),
                 align="l",
             )
             rule_error_table.add_rows([
-                (error, count)
+                (count, error)
                 for error, count in sorted(rule_errors.items(), key=lambda item: item[1], reverse=True)
             ])
             click.echo(rule_error_table.get_string())
@@ -105,13 +106,13 @@ def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues)
             click.echo("No rule errors found.")
 
         if cond_error_count > 0:
-            click.echo("Condition error summary:")
+            click.echo("\nCondition error summary:")
             cond_error_table = PrettyTable(
                 field_names=("Count", "Condition Error"),
                 align="l",
             )
             cond_error_table.add_rows([
-                (error, count)
+                (count, error)
                 for error, count in sorted(cond_errors.items(), key=lambda item: item[1], reverse=True)
             ])
             click.echo(cond_error_table.get_string())
@@ -119,7 +120,7 @@ def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues)
             click.echo("No condition errors found.")
 
         if issue_count > 0:
-            click.echo("Validation issue summary:")
+            click.echo("\nValidation issue summary:")
             validation_issue_summary = PrettyTable(
                 field_names=("Count", "Issue", "Severity", "Description"),
                 align="l",
