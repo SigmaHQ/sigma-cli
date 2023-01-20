@@ -26,6 +26,8 @@ backends = {
         "default": "Plain Elasticsearch Lucene queries",
         "kibana_ndjson": "Kibana NDJSON import file with Lucene queries",
         "dsl_lucene": "Elasticsearch query DSL with embedded Lucene queries",
+        "siem_rule": "Elasticsearch SIEM Rule with embedded Lucene queries",
+        "siem_rule_ndjson": "Elasticsearch SIEM Rule with embedded Lucene queries - NDJSON",
     }, True),
     "opensearch": Backend(OpensearchLuceneBackend, "OpenSearch Lucene", {
         "default": "Plain Elasticsearch Lucene queries",
