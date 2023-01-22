@@ -2,7 +2,7 @@ from typing import Counter
 import pytest
 from click.testing import CliRunner
 from sigma.cli.list import list_pipelines, list_targets, list_formats, list_validators
-from sigma.validators import validators
+from sigma.plugins import InstalledSigmaPlugins
 
 @pytest.fixture(params=[list_targets, list_pipelines], ids=["targets", "pipelines"])
 def cli_list(request):
@@ -33,6 +33,8 @@ def test_pipeline_list_with_backend():
 
 def test_validator_list():
     cli = CliRunner()
+    plugins = InstalledSigmaPlugins.autodiscover()
+    validators = plugins.validators
     result = cli.invoke(list_validators)
     assert all((
         validator_name in result.stdout
