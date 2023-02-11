@@ -1,5 +1,6 @@
 import click
 from sigma.plugins import SigmaPluginDirectory, SigmaPluginType, SigmaPluginState
+from sigma.exceptions import SigmaPluginNotFoundError
 from prettytable import PrettyTable
 
 @click.group(name="plugin", help="pySigma plugin management (backends, processing pipelines and validators).")
@@ -35,3 +36,22 @@ def list_plugins(plugin_type : str, plugin_state : str, compatible : bool, searc
     ])
     table.align = "l"
     click.echo(table.get_string())
+
+@plugin_group.command(name="install", help="Install plugin by identifier or UUID.")
+@click.option("--uuid", "-u", is_flag=True, help="Install plugin by UUID.")
+@click.option("--compatibility-check/--no-compatibility-check", "-c/-C", default=True, help="Enable or disable plugin compatibility check.")
+@click.argument("plugin-identifier")
+def install_plugin(uuid : bool, compatibility_check : bool, plugin_identifier : str):
+    plugins = SigmaPluginDirectory.default_plugin_directory()
+    try:
+        if uuid:
+            plugin = plugins.get_plugin_by_uuid(plugin_identifier)
+        else:
+            plugin = plugins.get_plugin_by_id(plugin_identifier)
+    except SigmaPluginNotFoundError as e:
+        raise click.exceptions.ClickException(str(e))
+
+    if not compatibility_check or plugin.is_compatible():
+        plugin.install()
+    else:
+        raise click.exceptions.ClickException("Plugin not compatible with installed pySigma version!")
