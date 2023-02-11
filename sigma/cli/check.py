@@ -45,7 +45,7 @@ def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues)
     if validation_config is None:   # no validation config provided, use basic config with all validators
         rule_validator = SigmaValidator(validators.values())
     else:
-        rule_validator = SigmaValidator.from_yaml(validation_config.read())
+        rule_validator = SigmaValidator.from_yaml(validation_config.read(), validators)
 
     try:
         rule_collection = load_rules(input, file_pattern)
