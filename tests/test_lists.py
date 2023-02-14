@@ -18,7 +18,7 @@ def test_simple_list(cli_list):
 
 def test_format_list():
     cli = CliRunner()
-    cli_list = cli.invoke(list_formats, ["splunk"])
+    cli_list = cli.invoke(list_formats, ["test"])
     counts = Counter(cli_list.output)
     assert cli_list.exit_code == 0 \
         and len(cli_list.output.split()) >= 5 \
@@ -28,7 +28,7 @@ def test_format_list():
 def test_pipeline_list_with_backend():
     cli = CliRunner()
     list_all = cli.invoke(list_pipelines).stdout.split("\n")
-    list_filtered = cli.invoke(list_pipelines, ["splunk"]).stdout.split("\n")
+    list_filtered = cli.invoke(list_pipelines, ["test"]).stdout.split("\n")
     assert len(list_all) > len(list_filtered)
 
 def test_validator_list():
@@ -36,6 +36,7 @@ def test_validator_list():
     plugins = InstalledSigmaPlugins.autodiscover()
     validators = plugins.validators
     result = cli.invoke(list_validators)
+    assert len(result.stdout.split()) > 10
     assert all((
         validator_name in result.stdout
         for validator_name in validators.keys()

@@ -23,7 +23,7 @@ def test_check_with_issues():
     assert result.exit_code == 0
     assert "3 issues" in result.stdout
 
-def test_check_with_issues_exlcusions():
+def test_check_with_issues_exclusions():
     cli = CliRunner()
     result = cli.invoke(check, ["--validation-config", "tests/files/validation_config.yml", "tests/files/issues"])
     assert result.exit_code == 0
