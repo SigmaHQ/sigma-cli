@@ -1,9 +1,9 @@
 import click
-from .backends import backends
-from .pipelines import pipelines, pipeline_resolver
-from sigma.validators import validators
+from sigma.plugins import InstalledSigmaPlugins
 from prettytable import PrettyTable
 from textwrap import dedent
+
+plugins = InstalledSigmaPlugins.autodiscover()
 
 @click.group(name="list", help="List available targets or processing pipelines.")
 def list_group():
@@ -11,26 +11,29 @@ def list_group():
 
 @list_group.command(name="targets", help="List conversion target query languages.")
 def list_targets():
-    table = PrettyTable()
-    table.field_names = ("Identifier", "Target Query Language", "Processing Pipeline Required")
-    table.add_rows([
-        (name, backend.text, "Yes" if backend.requires_pipeline else "No")
-        for name, backend in backends.items()
-    ])
-    table.align = "l"
-    click.echo(table.get_string())
+    if len(plugins.backends) == 0:
+        click.echo("No backends installed. Use " + click.style("sigma plugin list", bold=True, fg="green") + " to list available plugins.")
+    else:
+        table = PrettyTable()
+        table.field_names = ("Identifier", "Target Query Language", "Processing Pipeline Required")
+        table.add_rows([
+            (name, backend.name, "Yes" if backend.requires_pipeline else "No")
+            for name, backend in plugins.backends.items()
+        ])
+        table.align = "l"
+        click.echo(table.get_string())
 
 @list_group.command(name="formats", help="List formats supported by specified conversion backend.")
 @click.argument(
     "backend",
-    type=click.Choice(backends.keys()),
+    type=click.Choice(plugins.backends.keys()),
 )
 def list_formats(backend):
     table = PrettyTable()
     table.field_names = ("Format", "Description")
     table.add_rows([
         (name, description)
-        for name, description in backends[backend].formats.items()
+        for name, description in plugins.backends[backend].formats.items()
     ])
     table.align = "l"
     click.echo(table.get_string())
@@ -39,21 +42,25 @@ def list_formats(backend):
 @click.argument(
     "backend",
     required=False,
-    type=click.Choice(backends.keys())
+    type=click.Choice(plugins.backends.keys())
 )
 def list_pipelines(backend):
-    table = PrettyTable()
-    table.field_names = ("Identifier", "Priority", "Processing Pipeline", "Backends")
-    for name, definition in pipelines.items():
-        if backend is None or backend in definition.backends or len(definition.backends) == 0:
-            pipeline = pipeline_resolver.resolve_pipeline(name)
-            if len(definition.backends) > 0:
-                backends = ", ".join(definition.backends)
-            else:
-                backends = "all"
-            table.add_row((name, pipeline.priority, pipeline.name, backends))
-    table.align = "l"
-    click.echo(table.get_string())
+    pipeline_resolver = plugins.get_pipeline_resolver()
+    pipelines = list(pipeline_resolver.list_pipelines())
+    if len(pipelines) == 0:
+        click.echo("No pipelines. Use " + click.style("sigma plugin list", bold=True, fg="green") + " to list available plugins.")
+    else:
+        table = PrettyTable()
+        table.field_names = ("Identifier", "Priority", "Processing Pipeline", "Backends")
+        for name, pipeline in pipelines:
+            if backend is None or backend in pipeline.allowed_backends or len(pipeline.allowed_backends) == 0:
+                if len(pipeline.allowed_backends) > 0:
+                    backends = ", ".join(pipeline.allowed_backends)
+                else:
+                    backends = "all"
+                table.add_row((name, pipeline.priority, pipeline.name, backends))
+        table.align = "l"
+        click.echo(table.get_string())
 
 @list_group.command(name="validators", help="List rule validators.")
 def list_validators():
@@ -63,6 +70,6 @@ def list_validators():
     )
     table.add_rows([
         (name, dedent(validator.__doc__ or "-").strip())
-        for name, validator in validators.items()
+        for name, validator in plugins.validators.items()
     ])
     click.echo(table.get_string())

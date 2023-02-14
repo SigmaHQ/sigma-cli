@@ -9,8 +9,11 @@ from sigma.collection import SigmaCollection
 from sigma.exceptions import SigmaError
 
 from sigma.cli.rules import load_rules
-from .backends import backends
-from .pipelines import pipeline_resolver, pipelines
+from sigma.plugins import InstalledSigmaPlugins
+
+plugins = InstalledSigmaPlugins.autodiscover()
+backends = plugins.backends
+pipelines = plugins.pipelines
 
 @click.command()
 @click.option(
@@ -97,21 +100,26 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
         and not without_pipeline:
         raise click.UsageError(textwrap.dedent(f"""
         Processing pipeline required by backend! Define a custom pipeline or choose a predefined one.
-        
+
         Get all available pipelines for {target} with:
            sigma list pipelines {target}
-        
+
         If you never heard about processing pipelines you should get familiar with them
-        (https://sigmahq-pysigma.readthedocs.io/en/latest/Processing_Pipelines.html). 
+        (https://sigmahq-pysigma.readthedocs.io/en/latest/Processing_Pipelines.html).
         If you know what you're doing add --without-pipeline to your command line to suppress this error.
         """))
 
     # Check if pipelines match to backend
+    pipeline_resolver = plugins.get_pipeline_resolver()
     if pipeline_check:
-        wrong_pipelines = [
-            p
+        resolved_pipelines = {
+            p: pipeline_resolver.resolve_pipeline(p)
             for p in pipeline
-            if pipelines.get(p, False) and not (pipelines[p].backends == () or target in pipelines[p].backends)
+        }
+        wrong_pipelines = [
+            id
+            for id, p in resolved_pipelines.items()
+            if not (len(p.allowed_backends) == 0 or target in p.allowed_backends)
         ]
         if len(wrong_pipelines) > 0:
             raise click.UsageError(textwrap.dedent(f"""
@@ -122,7 +130,7 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
             """))
 
     # Initialize processing pipeline and backend
-    backend_class = backends[target].cls
+    backend_class = backends[target]
     processing_pipeline = pipeline_resolver.resolve(pipeline)
     backend : Backend = backend_class(
         processing_pipeline=processing_pipeline,
