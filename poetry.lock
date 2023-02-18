@@ -330,14 +330,14 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pysigma"
-version = "0.9.2"
+version = "0.9.3"
 description = "Sigma rule processing and conversion tools"
 category = "main"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "pysigma-0.9.2-py3-none-any.whl", hash = "sha256:ed1eb66fa4b60f64cfae82615e594f929d120c85e3d7ab6b82cadfe43a889367"},
-    {file = "pysigma-0.9.2.tar.gz", hash = "sha256:360dd94cfdc83505c839b1f517bd16f30aee704f109291b95c8a7084349dcf69"},
+    {file = "pysigma-0.9.3-py3-none-any.whl", hash = "sha256:f2cef9ccbb7f56705299e30ec3a214e55dce0b4dd7c480d36733ddc6f80c3ea7"},
+    {file = "pysigma-0.9.3.tar.gz", hash = "sha256:2cdfbc1bb89644d2012c6632efb33a7831b43c0c73415c5bea0c220f514cb982"},
 ]
 
 [package.dependencies]
