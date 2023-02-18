@@ -1,3 +1,4 @@
+from typing import List
 import click
 from sigma.plugins import SigmaPluginDirectory, SigmaPluginType, SigmaPluginState, SigmaPlugin
 from sigma.exceptions import SigmaPluginNotFoundError
@@ -51,19 +52,21 @@ def get_plugin(uuid : bool, plugin_identifier : str) -> SigmaPlugin:
 @plugin_group.command(name="install", help="Install plugin by identifier or UUID.")
 @click.option("--uuid", "-u", is_flag=True, help="Install plugin by UUID.")
 @click.option("--compatibility-check/--no-compatibility-check", "-c/-C", default=True, help="Enable or disable plugin compatibility check.")
-@click.argument("plugin-identifier")
-def install_plugin(uuid : bool, compatibility_check : bool, plugin_identifier : str):
-    plugin = get_plugin(uuid, plugin_identifier)
-    if not compatibility_check or plugin.is_compatible():
-        plugin.install()
-        click.echo(f"Successfully installed plugin '{plugin_identifier}'")
-    else:
-        raise click.exceptions.ClickException("Plugin not compatible with installed pySigma version!")
+@click.argument("plugin-identifiers", nargs=-1)
+def install_plugin(uuid : bool, compatibility_check : bool, plugin_identifiers : List[str]):
+    for plugin_identifier in plugin_identifiers:
+        plugin = get_plugin(uuid, plugin_identifier)
+        if not compatibility_check or plugin.is_compatible():
+            plugin.install()
+            click.echo(f"Successfully installed plugin '{plugin_identifier}'")
+        else:
+            raise click.exceptions.ClickException("Plugin not compatible with installed pySigma version!")
 
 @plugin_group.command(name="uninstall", help="Uninstall plugin by identifier or UUID.")
 @click.option("--uuid", "-u", is_flag=True, help="Uninstall plugin by UUID.")
-@click.argument("plugin-identifier")
-def uninstall_plugin(uuid : bool, plugin_identifier : str):
-    plugin = get_plugin(uuid, plugin_identifier)
-    plugin.uninstall()
-    click.echo(f"Successfully uninstalled plugin '{plugin_identifier}'")
+@click.argument("plugin-identifiers", nargs=-1)
+def uninstall_plugin(uuid : bool, plugin_identifiers : List[str]):
+    for plugin_identifier in plugin_identifiers:
+        plugin = get_plugin(uuid, plugin_identifier)
+        plugin.uninstall()
+        click.echo(f"Successfully uninstalled plugin '{plugin_identifier}'")
