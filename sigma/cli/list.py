@@ -1,7 +1,7 @@
 import click
 from sigma.plugins import InstalledSigmaPlugins
 from prettytable import PrettyTable
-from textwrap import dedent
+from textwrap import dedent, fill
 
 plugins = InstalledSigmaPlugins.autodiscover()
 
@@ -17,7 +17,7 @@ def list_targets():
         table = PrettyTable()
         table.field_names = ("Identifier", "Target Query Language", "Processing Pipeline Required")
         table.add_rows([
-            (name, backend.name, "Yes" if backend.requires_pipeline else "No")
+            (name, fill(backend.name, width=60), "Yes" if backend.requires_pipeline else "No")
             for name, backend in plugins.backends.items()
         ])
         table.align = "l"
@@ -32,7 +32,7 @@ def list_formats(backend):
     table = PrettyTable()
     table.field_names = ("Format", "Description")
     table.add_rows([
-        (name, description)
+        (name, fill(description, width=60))
         for name, description in plugins.backends[backend].formats.items()
     ])
     table.align = "l"
@@ -58,7 +58,7 @@ def list_pipelines(backend):
                     backends = ", ".join(pipeline.allowed_backends)
                 else:
                     backends = "all"
-                table.add_row((name, pipeline.priority, pipeline.name, backends))
+                table.add_row((name, pipeline.priority, fill(pipeline.name, width=60), backends))
         table.align = "l"
         click.echo(table.get_string())
 
@@ -69,7 +69,7 @@ def list_validators():
         align="l",
     )
     table.add_rows([
-        (name, dedent(validator.__doc__ or "-").strip())
+        (name, fill(dedent(validator.__doc__ or "-").strip(), width=60))
         for name, validator in plugins.validators.items()
     ])
     click.echo(table.get_string())

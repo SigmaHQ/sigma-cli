@@ -1,4 +1,5 @@
 import pathlib
+from textwrap import fill
 import click
 from collections import Counter
 from prettytable import PrettyTable
@@ -101,7 +102,7 @@ def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues)
                 align="l",
             )
             rule_error_table.add_rows([
-                (count, error)
+                (count, fill(error, width=60))
                 for error, count in sorted(rule_errors.items(), key=lambda item: item[1], reverse=True)
             ])
             click.echo(rule_error_table.get_string())
@@ -115,7 +116,7 @@ def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues)
                 align="l",
             )
             cond_error_table.add_rows([
-                (count, error)
+                (count, fill(error, width=60))
                 for error, count in sorted(cond_errors.items(), key=lambda item: item[1], reverse=True)
             ])
             click.echo(cond_error_table.get_string())
@@ -129,7 +130,7 @@ def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues)
                 align="l",
             )
             validation_issue_summary.add_rows([
-                (count, issue.__name__, issue.severity.name, issue.description)
+                (count, issue.__name__, issue.severity.name, fill(issue.description, width=60))
                 for issue, count in sorted(issue_counter.items(), key=lambda item: item[1], reverse=True)
             ])
             click.echo(validation_issue_summary.get_string())

@@ -2,6 +2,7 @@ import click
 from sigma.plugins import SigmaPluginDirectory, SigmaPluginType, SigmaPluginState, SigmaPlugin
 from sigma.exceptions import SigmaPluginNotFoundError
 from prettytable import PrettyTable
+from textwrap import fill
 
 @click.group(name="plugin", help="pySigma plugin management (backends, processing pipelines and validators).")
 def plugin_group():
@@ -30,7 +31,7 @@ def list_plugins(plugin_type : str, plugin_state : str, compatible : bool, searc
     table = PrettyTable()
     table.field_names = ("Identifier", "Type", "State", "Description", "Compatible?")
     table.add_rows([
-        (plugin.id, str(plugin.type), str(plugin.state), plugin.description, compatibility_state[plugin.is_compatible()])
+        (plugin.id, str(plugin.type), str(plugin.state), fill(plugin.description, width=60), compatibility_state[plugin.is_compatible()])
         for plugin in plugins.get_plugins(compatible_only=compatible, **get_plugins_args)
         if norm_search in plugin.id.lower() or norm_search in plugin.description.lower()
     ])
