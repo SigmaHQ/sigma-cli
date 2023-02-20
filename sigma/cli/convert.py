@@ -48,7 +48,7 @@ class KeyValueParamType(click.ParamType):
     help="Specify processing pipelines as identifiers (list pipelines) or YAML files",
 )
 @click.option(
-    "--without-pipeline", "-P",
+    "--without-pipeline",
     is_flag=True,
     default=False,
     help="Proceed with conversion without processing pipeline, even if it is mandatory for the target.",
