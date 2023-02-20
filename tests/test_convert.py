@@ -68,5 +68,32 @@ def test_convert_wrong_pipeline():
 def test_yml_pipeline_doesnt_trigger_wrong_pipeline():
     cli = CliRunner()
     result = cli.invoke(convert, ["-t", "test", "-p", "test", "-p", "tests/files/custom_pipeline.yml", "tests/files/valid"])
-    print(result.stdout)
     assert "some_other_string" in result.stdout
+
+def test_backend_option_invalid_format():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "test", "-O", "invalid", "tests/files/valid"])
+    assert result.exit_code != 0
+    assert "not format key=value" in result.stdout
+
+def test_backend_option_invalid_type():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "test", "-O", 123, "tests/files/valid"])
+    assert result.exit_code != 0
+    assert "must be a string" in result.stdout
+
+def test_backend_option_unknown_by_backend():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "test", "-O", "unknown=parameter", "tests/files/valid"])
+    assert result.exit_code != 0
+    assert "Parameter 'unknown' is not supported" in result.stdout
+
+def test_convert_output_backend_option():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "test", "-f", "list_of_dict", "-O", "testparam=testvalue", "tests/files/valid"])
+    assert 'testvalue' in result.stdout
+
+def test_convert_output_backend_option_list():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "test", "-f", "list_of_dict", "-O", "testparam=123", "-O", "testparam=test", "tests/files/valid"])
+    assert '[123, "test"]' in result.stdout

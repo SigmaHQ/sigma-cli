@@ -2,6 +2,7 @@ from genericpath import exists
 import json
 import pathlib
 import textwrap
+from typing import Any, Optional
 import click
 
 from sigma.conversion.base import Backend
@@ -14,6 +15,24 @@ from sigma.plugins import InstalledSigmaPlugins
 plugins = InstalledSigmaPlugins.autodiscover()
 backends = plugins.backends
 pipelines = plugins.pipelines
+
+class KeyValueParamType(click.ParamType):
+    """
+    key=value type for backend-specific options.
+    """
+    def convert(self, value, param, ctx):
+        if not isinstance(value, str):
+            self.fail(f"Value must be a string with format key=value", param, ctx)
+        try:
+            k, v = value.split("=", 1)
+        except ValueError:
+            self.fail(f"Value '{value}' has not format key=value", param, ctx)
+
+        try:
+            return { k: int(v) }
+        except ValueError:
+            return { k: v }
+
 
 @click.command()
 @click.option(
@@ -76,12 +95,11 @@ pipelines = plugins.pipelines
     help="Pretty-print and indent JSON output with given indentation width per level."
 )
 @click.option(
-    "--min-time",
-    help="Minimal search time in backend-specific format. Must be supported by backend and output format."
-)
-@click.option(
-    "--max-time",
-    help="Maximal search time in backend-specific format. Must be supported by backend and output format."
+    "--backend-option",
+    "-O",
+    type=KeyValueParamType(),
+    multiple=True,
+    help="Backend-specific options provided as key=value pair.",
 )
 @click.argument(
     "input",
@@ -89,7 +107,7 @@ pipelines = plugins.pipelines
     required=True,
     type=click.Path(exists=True, path_type=pathlib.Path),
 )
-def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_unsupported, min_time, max_time, output, encoding, json_indent, input, file_pattern):
+def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_unsupported, output, encoding, json_indent, backend_option, input, file_pattern):
     """
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
     into directories and converts all files matching the pattern in --file-pattern.
@@ -129,15 +147,32 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
             check with --disable-pipeline-check.
             """))
 
+    # Merge backend options: multiple occurences of a key result in array of values
+    backend_options = dict()
+    for option in backend_option:
+        for k, v in option.items():
+            backend_options.setdefault(k, list()).append(v)
+    backend_options = {
+        k: (
+            v[0]                # if there's only one item, return it.
+            if len(v) == 1
+            else v
+        )
+        for k, v in backend_options.items()
+    }
+
     # Initialize processing pipeline and backend
     backend_class = backends[target]
     processing_pipeline = pipeline_resolver.resolve(pipeline)
-    backend : Backend = backend_class(
-        processing_pipeline=processing_pipeline,
-        collect_errors=skip_unsupported,
-        min_time=min_time,
-        max_time=max_time,
-        )
+    try:
+        backend : Backend = backend_class(
+            processing_pipeline=processing_pipeline,
+            collect_errors=skip_unsupported,
+            **backend_options
+            )
+    except TypeError as e:
+        param = str(e).split("'")[1]
+        raise click.BadParameter(f"Parameter '{param}' is not supported by backend '{target}'.", param_hint="backend_option")
 
     if format not in backends[target].formats.keys():
         raise click.BadParameter(f"Output format '{format}' is not supported by backend '{target}'.", param_hint="format")
