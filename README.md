@@ -45,7 +45,9 @@ E.g. to convert process creation Sigma rules from a directory into Splunk querie
 sigma convert -t splunk -p sysmon sigma/rules/windows/process_creation
 ```
 
-Available conversion backends and processing pipelines can be listed with `sigma list`.
+Available conversion backends and processing pipelines can be listed with `sigma list`. 
+Use `-O` or `--backend-option` for passing options to the backend as key=value pairs (`-O testparam=123`) .
+This backend option parameter can be used multiple times (`-O first=123 -O second=456`).
 
 Backends can support different output formats, e.g. plain queries and a file that can be imported into the target
 system. These formats can be listed with `sigma list formats <backend>` and specified for conversion with the `-f`
