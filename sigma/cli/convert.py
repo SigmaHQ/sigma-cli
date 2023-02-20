@@ -20,6 +20,7 @@ class KeyValueParamType(click.ParamType):
     """
     key=value type for backend-specific options.
     """
+    name = "key-value"
     def convert(self, value, param, ctx):
         if not isinstance(value, str):
             self.fail(f"Value must be a string with format key=value", param, ctx)

@@ -1,8 +1,38 @@
 from typing import Counter
 import pytest
 from click.testing import CliRunner
-from sigma.cli.list import list_pipelines, list_targets, list_formats, list_validators
+from sigma.cli.list import list_group, list_pipelines, list_targets, list_formats, list_validators
 from sigma.plugins import InstalledSigmaPlugins
+
+def test_list_help():
+    cli = CliRunner()
+    result = cli.invoke(list_group, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 20
+
+def test_list_pipelines_help():
+    cli = CliRunner()
+    result = cli.invoke(list_pipelines, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 5
+
+def test_list_targets_help():
+    cli = CliRunner()
+    result = cli.invoke(list_targets, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 5
+
+def test_list_formats_help():
+    cli = CliRunner()
+    result = cli.invoke(list_formats, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 5
+
+def test_list_validators_help():
+    cli = CliRunner()
+    result = cli.invoke(list_validators, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 5
 
 @pytest.fixture(params=[list_targets, list_pipelines], ids=["targets", "pipelines"])
 def cli_list(request):

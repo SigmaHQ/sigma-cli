@@ -1,6 +1,30 @@
 from click.testing import CliRunner
 
-from sigma.cli.plugin import list_plugins, install_plugin, uninstall_plugin
+from sigma.cli.plugin import plugin_group, list_plugins, install_plugin, uninstall_plugin
+
+def test_plugin_help():
+    cli = CliRunner()
+    result = cli.invoke(plugin_group, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 20
+
+def test_plugin_list_help():
+    cli = CliRunner()
+    result = cli.invoke(list_plugins, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 20
+
+def test_plugin_install_help():
+    cli = CliRunner()
+    result = cli.invoke(install_plugin, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 20
+
+def test_plugin_uninstall_help():
+    cli = CliRunner()
+    result = cli.invoke(uninstall_plugin, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 20
 
 def test_plugin_list():
     cli = CliRunner()

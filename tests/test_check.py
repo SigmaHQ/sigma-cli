@@ -1,6 +1,12 @@
 from click.testing import CliRunner
 from sigma.cli.check import check
 
+def test_check_help():
+    cli = CliRunner()
+    result = cli.invoke(check, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 20
+
 def test_check_valid():
     cli = CliRunner()
     result = cli.invoke(check, ["tests/files/valid"])

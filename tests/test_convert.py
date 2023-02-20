@@ -3,6 +3,12 @@ import pytest
 from sigma.cli.convert import convert
 import sigma.backends.test
 
+def test_convert_help():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 20
+
 def test_convert_output_list_of_str():
     cli = CliRunner()
     result = cli.invoke(convert, ["-t", "test", "-p", "another_test", "--disable-pipeline-check", "tests/files/valid"])
