@@ -46,10 +46,23 @@ def test_convert_output_bytes(tmp_path):
     assert result.exit_code == 0
     assert "ParentImage" in open(test_file, "r").read()
 
+def test_convert_unknown_backend():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "notexisting", "-f", "foo", "tests/files/valid"])
+    assert "Invalid value for" in result.stdout
+    assert "--plugin-type backend" in result.stdout
+
 def test_convert_unknown_format():
     cli = CliRunner()
-    result = cli.invoke(convert, ["-t", "test", "-f", "foo", "tests/files/valid"])
+    result = cli.invoke(convert, ["-t", "test", "-f", "nonexisting", "tests/files/valid"])
     assert "Invalid value for format" in result.stdout
+    assert "sigma list formats" in result.stdout
+
+def test_convert_unknown_pipeline():
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "test", "-p", "nonexisting", "tests/files/valid"])
+    assert "'nonexisting' was not found" in result.stdout
+    assert "--plugin-type pipeline" in result.stdout
 
 def test_convert_missing_input():
     cli = CliRunner()
@@ -69,7 +82,7 @@ def test_convert_missing_pipeline_ignore():
 def test_convert_wrong_pipeline():
     cli = CliRunner()
     result = cli.invoke(convert, ["-t", "test", "-p", "another_test", "tests/files/valid"])
-    assert result.exit_code > 0 and "pipelines are not intended" in result.stdout
+    assert result.exit_code > 0 and "'another_test' is not intended" in result.stdout
 
 def test_yml_pipeline_doesnt_trigger_wrong_pipeline():
     cli = CliRunner()

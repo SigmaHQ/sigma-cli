@@ -2,12 +2,12 @@ from genericpath import exists
 import json
 import pathlib
 import textwrap
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 import click
 
 from sigma.conversion.base import Backend
 from sigma.collection import SigmaCollection
-from sigma.exceptions import SigmaError
+from sigma.exceptions import SigmaError, SigmaPipelineNotAllowedForBackendError, SigmaPipelineNotFoundError
 
 from sigma.cli.rules import load_rules
 from sigma.plugins import InstalledSigmaPlugins
@@ -15,6 +15,8 @@ from sigma.plugins import InstalledSigmaPlugins
 plugins = InstalledSigmaPlugins.autodiscover()
 backends = plugins.backends
 pipelines = plugins.pipelines
+pipeline_resolver = plugins.get_pipeline_resolver()
+pipeline_list = list(pipeline_resolver.pipelines.keys())
 
 class KeyValueParamType(click.ParamType):
     """
@@ -34,18 +36,27 @@ class KeyValueParamType(click.ParamType):
         except ValueError:
             return { k: v }
 
+class ChoiceWithPluginHint(click.Choice):
+    """Custom base class that shows a command line for listing the appropriate plugins if user tries to use an unknown
+    backend or pipeline."""
+    def __init__(self, choices: Sequence[str], plugin_type : str, case_sensitive: bool = True) -> None:
+        self.plugin_type = plugin_type
+        super().__init__(choices, case_sensitive)
+
+    def fail(self, message : str, param, ctx):
+        return super().fail(message + " - run " + click.style(f"sigma plugin list --plugin-type {self.plugin_type}", bold=True, fg="green") + " for a list of available plugins.", param, ctx)
 
 @click.command()
 @click.option(
     "--target", "-t",
-    type=click.Choice(backends.keys()),
+    type=ChoiceWithPluginHint(backends.keys(), "backend"),
     required=True,
-    help="Target query language (list targets)",
+    help="Target query language (" + click.style("sigma list targets", bold=True, fg="green") + ")",
 )
 @click.option(
     "--pipeline", "-p",
     multiple=True,
-    help="Specify processing pipelines as identifiers (list pipelines) or YAML files",
+    help="Specify processing pipelines as identifiers (" + click.style("sigma list pipelines", bold=True, fg="green") + ") or YAML files",
 )
 @click.option(
     "--without-pipeline",
@@ -121,32 +132,12 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
         Processing pipeline required by backend! Define a custom pipeline or choose a predefined one.
 
         Get all available pipelines for {target} with:
-           sigma list pipelines {target}
+        """ + click.style(f"sigma list pipelines {target}", bold=True, fg="green") + """
 
         If you never heard about processing pipelines you should get familiar with them
         (https://sigmahq-pysigma.readthedocs.io/en/latest/Processing_Pipelines.html).
         If you know what you're doing add --without-pipeline to your command line to suppress this error.
         """))
-
-    # Check if pipelines match to backend
-    pipeline_resolver = plugins.get_pipeline_resolver()
-    if pipeline_check:
-        resolved_pipelines = {
-            p: pipeline_resolver.resolve_pipeline(p)
-            for p in pipeline
-        }
-        wrong_pipelines = [
-            id
-            for id, p in resolved_pipelines.items()
-            if not (len(p.allowed_backends) == 0 or target in p.allowed_backends)
-        ]
-        if len(wrong_pipelines) > 0:
-            raise click.UsageError(textwrap.dedent(f"""
-            The following pipelines are not intended to be used with the target {target}: { ", ".join(wrong_pipelines)}.
-            You can list all pipelines that are intended to be used with this target with (sigms list pipelines
-            {target}). If you know what you're doing and want to use this pipeline(s) in this conversion, disable this
-            check with --disable-pipeline-check.
-            """))
 
     # Merge backend options: multiple occurences of a key result in array of values
     backend_options = dict()
@@ -164,7 +155,24 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
 
     # Initialize processing pipeline and backend
     backend_class = backends[target]
-    processing_pipeline = pipeline_resolver.resolve(pipeline)
+    try:
+        processing_pipeline = pipeline_resolver.resolve(pipeline, target if pipeline_check else None)
+    except SigmaPipelineNotFoundError as e:
+        raise click.UsageError(
+            f"The pipeline '{e.spec}' was not found.\n" +
+            "List all installed processing pipelines with: " + click.style(f"sigma list pipelines {target}", bold=True, fg="green") + "\n"
+            "List pipeline plugins for installation with: " + click.style(f"sigma plugin list --plugin-type pipeline", bold=True, fg="green") + "\n" +
+            "Pipelines not listed here are treated as file names."
+            )
+    except SigmaPipelineNotAllowedForBackendError as e:
+        raise click.UsageError(textwrap.dedent(f"""
+        The pipeline '{e.wrong_pipeline}' is not intended to be used with the target {target}.
+        You can list all pipelines that are intended to be used with this target with """ + \
+            click.style(f"sigma list pipelines {target}", bold=True, fg="green") + """.
+        If you know what you're doing and want to use this pipeline(s) in this conversion, disable this
+        check with --disable-pipeline-check.
+        """))
+
     try:
         backend : Backend = backend_class(
             processing_pipeline=processing_pipeline,
@@ -176,7 +184,8 @@ def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_uns
         raise click.BadParameter(f"Parameter '{param}' is not supported by backend '{target}'.", param_hint="backend_option")
 
     if format not in backends[target].formats.keys():
-        raise click.BadParameter(f"Output format '{format}' is not supported by backend '{target}'.", param_hint="format")
+        raise click.BadParameter(f"Output format '{format}' is not supported by backend '{target}'. Run " +
+        click.style(f"sigma list formats {target}", bold=True, fg="green") + " to list all available formats of the target.", param_hint="format")
 
     try:
         rule_collection = load_rules(input, file_pattern)
