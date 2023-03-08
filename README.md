@@ -14,7 +14,7 @@ and convert Sigma rules into query languages.
 The easiest way to install the Sigma CLI is via *pipx* or *pip*. For this purpose run one of the following:
 
 ```
-python -m pipx install sigma-cli
+python -m pip install sigma-cli
 python -m pip install sigma-cli
 ```
 on macOS use
