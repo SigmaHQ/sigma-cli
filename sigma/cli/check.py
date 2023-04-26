@@ -39,6 +39,7 @@ validators = plugins.validators
 @click.argument(
     "input",
     nargs=-1,
+    required=True,
     type=click.Path(exists=True, path_type=pathlib.Path),
 )
 def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues):
