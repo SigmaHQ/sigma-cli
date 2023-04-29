@@ -1,5 +1,6 @@
 import click
 from sigma.plugins import InstalledSigmaPlugins
+from sigma.modifiers import modifier_mapping
 from prettytable import PrettyTable
 from textwrap import dedent, fill
 
@@ -71,5 +72,29 @@ def list_validators():
     table.add_rows([
         (name, fill(dedent(validator.__doc__ or "-").strip(), width=60))
         for name, validator in plugins.validators.items()
+    ])
+    click.echo(table.get_string())
+
+@list_group.command(name="modifiers", help="List Sigma rule value modifiers.")
+def list_modifiers():
+    table = PrettyTable(
+        field_names=("Modifier", "Description",),
+        align="l",
+    )
+    modifier_classes = []
+    for cls in modifier_mapping.values():
+        if not cls in modifier_classes:
+            modifier_classes.append(cls)
+    modifiers = [
+        (" / ".join(
+            modifier
+            for modifier, c in modifier_mapping.items()
+            if c == cls
+        ), cls)
+        for cls in modifier_classes
+    ]
+    table.add_rows([
+        (modifier, fill(dedent(cls.__doc__ or "-").strip(), width=60))
+        for modifier, cls in modifiers # modifier_mapping.items()
     ])
     click.echo(table.get_string())
