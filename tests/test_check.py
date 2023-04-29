@@ -15,6 +15,15 @@ def test_check_valid():
     assert "0 condition errors" in result.stdout
     assert "0 issues" in result.stdout
 
+def test_check_stdin():
+    cli = CliRunner()
+    input = open("tests/files/valid/sigma_rule.yml", "rt").read()
+    result = cli.invoke(check, ["-"], input=input)
+    assert result.exit_code == 0
+    assert "0 errors" in result.stdout
+    assert "0 condition errors" in result.stdout
+    assert "0 issues" in result.stdout
+
 def test_check_invalid():
     cli = CliRunner()
     result = cli.invoke(check, ["tests/files/invalid"])

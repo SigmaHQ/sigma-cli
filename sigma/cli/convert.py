@@ -117,7 +117,7 @@ class ChoiceWithPluginHint(click.Choice):
     "input",
     nargs=-1,
     required=True,
-    type=click.Path(exists=True, path_type=pathlib.Path),
+    type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
 )
 def convert(target, pipeline, without_pipeline, pipeline_check, format, skip_unsupported, output, encoding, json_indent, backend_option, input, file_pattern):
     """

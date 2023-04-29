@@ -40,7 +40,7 @@ validators = plugins.validators
     "input",
     nargs=-1,
     required=True,
-    type=click.Path(exists=True, path_type=pathlib.Path),
+    type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
 )
 def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues):
     """Check Sigma rules for validity and best practices (not yet implemented)."""

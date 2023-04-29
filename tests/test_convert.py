@@ -14,6 +14,12 @@ def test_convert_output_list_of_str():
     result = cli.invoke(convert, ["-t", "test", "-p", "another_test", "--disable-pipeline-check", "tests/files/valid"])
     assert 'EventID=1 and ParentImage endswith "\\httpd.exe" and Image endswith "\\cmd.exe"' in result.stdout
 
+def test_convert_stdin():
+    cli = CliRunner()
+    input = open("tests/files/valid/sigma_rule.yml", "rt").read()
+    result = cli.invoke(convert, ["-t", "test", "-p", "another_test", "--disable-pipeline-check", "-"], input=input)
+    assert 'EventID=1 and ParentImage endswith "\\httpd.exe" and Image endswith "\\cmd.exe"' in result.stdout
+
 def test_convert_output_list_of_dict():
     cli = CliRunner()
     result = cli.invoke(convert, ["-t", "test", "-f", "list_of_dict", "tests/files/valid"])
