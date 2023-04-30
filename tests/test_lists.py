@@ -1,8 +1,11 @@
 from typing import Counter
 import pytest
 from click.testing import CliRunner
-from sigma.cli.list import list_group, list_pipelines, list_targets, list_formats, list_validators
+from sigma.cli.list import list_group, list_pipelines, list_targets, list_formats, list_validators, list_modifiers, list_transformations, list_conditions
 from sigma.plugins import InstalledSigmaPlugins
+from sigma.modifiers import modifier_mapping
+from sigma.processing.transformations import transformations
+from sigma.processing.conditions import rule_conditions, detection_item_conditions, field_name_conditions
 
 def test_list_help():
     cli = CliRunner()
@@ -70,4 +73,31 @@ def test_validator_list():
     assert all((
         validator_name in result.stdout
         for validator_name in validators.keys()
+    ))
+
+def test_modifier_list():
+    cli = CliRunner()
+    result = cli.invoke(list_modifiers)
+    assert all((
+        name in result.stdout
+        for name in modifier_mapping.keys()
+    ))
+
+def test_transformation_list():
+    cli = CliRunner()
+    result = cli.invoke(list_transformations)
+    assert all((
+        name in result.stdout
+        for name in transformations.keys()
+    ))
+
+def test_condition_list():
+    cli = CliRunner()
+    result = cli.invoke(list_conditions)
+    conditions = list(rule_conditions.keys())
+    conditions.extend(detection_item_conditions.keys())
+    conditions.extend(field_name_conditions.keys())
+    assert all((
+        name in result.stdout
+        for name in conditions
     ))
