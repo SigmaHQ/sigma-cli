@@ -1,6 +1,8 @@
 import click
 from sigma.plugins import InstalledSigmaPlugins
 from sigma.modifiers import modifier_mapping
+from sigma.processing.transformations import transformations
+from sigma.processing.conditions import rule_conditions, detection_item_conditions, field_name_conditions
 from prettytable import PrettyTable
 from textwrap import dedent, fill
 
@@ -96,5 +98,37 @@ def list_modifiers():
     table.add_rows([
         (modifier, fill(dedent(cls.__doc__ or "-").strip(), width=60))
         for modifier, cls in modifiers # modifier_mapping.items()
+    ])
+    click.echo(table.get_string())
+
+@list_group.command(name="transformations", help="List processing pipeline transformations.")
+def list_transformations():
+    table = PrettyTable(
+        field_names=("Transformation", "Description",),
+        align="l",
+    )
+    table.add_rows([
+        (name, fill(dedent(cls.__doc__ or "-").strip(), width=60))
+        for name, cls in transformations.items()
+    ])
+    click.echo(table.get_string())
+
+@list_group.command(name="conditions", help="List processing pipeline conditions.")
+def list_conditions():
+    table = PrettyTable(
+        field_names=("Type", "Condition", "Description",),
+        align="l",
+    )
+    table.add_rows([
+        ("Rule", name, fill(dedent(cls.__doc__ or "-").strip(), width=60))
+        for name, cls in rule_conditions.items()
+    ])
+    table.add_rows([
+        ("Detection Item", name, fill(dedent(cls.__doc__ or "-").strip(), width=60))
+        for name, cls in detection_item_conditions.items()
+    ])
+    table.add_rows([
+        ("Field Name", name, fill(dedent(cls.__doc__ or "-").strip(), width=60))
+        for name, cls in field_name_conditions.items()
     ])
     click.echo(table.get_string())
