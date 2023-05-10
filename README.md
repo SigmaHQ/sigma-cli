@@ -45,6 +45,16 @@ E.g. to convert process creation Sigma rules from a directory into Splunk querie
 sigma convert -t splunk -p sysmon sigma/rules/windows/process_creation
 ```
 
+Required backends must be installed using the following command prior to conducting conversions.
+
+```
+sigma plugin install <backend>
+```
+E.g. to install the splunk backend run:
+```
+sigma plugin install splunk
+```
+
 Available conversion backends and processing pipelines can be listed with `sigma list`. 
 Use `-O` or `--backend-option` for passing options to the backend as key=value pairs (`-O testparam=123`) .
 This backend option parameter can be used multiple times (`-O first=123 -O second=456`).
