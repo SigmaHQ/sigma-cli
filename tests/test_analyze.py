@@ -25,6 +25,34 @@ def test_attack_generate():
     assert len(result.stdout.split()) > 25
     assert "T1505.003" in result.stdout
     assert "persistence" in result.stdout
+    assert "#ff0000" in result.stdout
+    assert "#ffffff00" in result.stdout
+    assert '"maxValue": 4' in result.stdout
+    assert '"minValue": 0' in result.stdout
+
+def test_attack_generate_max_value():
+    cli = CliRunner()
+    result = cli.invoke(analyze_attack, ["--max-score", "2", "max", "-", "tests/files/valid"])
+    assert result.exit_code == 0
+    assert '"maxValue": 2' in result.stdout
+
+def test_attack_generate_min_value():
+    cli = CliRunner()
+    result = cli.invoke(analyze_attack, ["--min-score", "2", "max", "-", "tests/files/valid"])
+    assert result.exit_code == 0
+    assert '"minValue": 2' in result.stdout
+
+def test_attack_generate_max_color():
+    cli = CliRunner()
+    result = cli.invoke(analyze_attack, ["--max-color", "#123456", "max", "-", "tests/files/valid"])
+    assert result.exit_code == 0
+    assert "#123456" in result.stdout
+
+def test_attack_generate_min_color():
+    cli = CliRunner()
+    result = cli.invoke(analyze_attack, ["--min-color", "#123456", "max", "-", "tests/files/valid"])
+    assert result.exit_code == 0
+    assert "#123456" in result.stdout
 
 def test_attack_generate_no_subtechniques():
     cli = CliRunner()
