@@ -47,6 +47,11 @@ sigma convert -t splunk -p sysmon sigma/rules/windows/process_creation
 
 Required backends must be installed using the following command prior to conducting conversions.
 
+To list all available plugins run the following command:
+```
+sigma plugin list
+```
+Install a plugin of your choice with:
 ```
 sigma plugin install <backend>
 ```
