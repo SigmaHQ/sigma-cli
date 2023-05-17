@@ -1,5 +1,15 @@
 import imp
 import click
+import sys
+try:
+    import sigma.parser.base
+    click.echo(click.style("ERROR:", bold=True, fg="red") + click.style(" the legacy 'sigmatools' package is installed in the same Python environment as Sigma CLI and pySigma. This can cause unexpected errors!", fg="red"))
+    click.echo(click.style("Please uninstall 'sigmatools' from this Python environment!", fg="red"))
+    click.echo(click.style("It is strogly recommended to install Sigma CLI with pipx (https://pypa.github.io/pipx/) to ensure a clean environment.", fg="green"))
+    sys.exit(100)
+except ImportError:
+    pass
+
 import pkg_resources
 from .list import list_group
 from .convert import convert
