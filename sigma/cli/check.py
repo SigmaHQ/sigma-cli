@@ -3,6 +3,7 @@ from textwrap import fill
 import click
 from collections import Counter
 from prettytable import PrettyTable
+from sys import stderr
 
 from sigma.exceptions import SigmaConditionError, SigmaError
 from sigma.cli.rules import load_rules
@@ -78,7 +79,7 @@ def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues)
         rule_error_count = sum(rule_errors.values())
         #rule_error_count = rule_errors.total()
 
-        with click.progressbar(check_rules, label="Checking Sigma rules") as rules:
+        with click.progressbar(check_rules, label="Checking Sigma rules", file=stderr) as rules:
             issues = rule_validator.validate_rules(rules)
 
         issue_count = len(issues)
