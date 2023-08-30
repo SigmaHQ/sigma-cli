@@ -51,7 +51,7 @@ def test_simple_list(cli_list):
 
 def test_format_list():
     cli = CliRunner()
-    cli_list = cli.invoke(list_formats, ["test"])
+    cli_list = cli.invoke(list_formats, ["text_query_test"])
     counts = Counter(cli_list.output)
     assert cli_list.exit_code == 0 \
         and len(cli_list.output.split()) >= 5 \

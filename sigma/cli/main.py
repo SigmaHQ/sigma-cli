@@ -1,4 +1,3 @@
-import imp
 import click
 import sys
 try:
