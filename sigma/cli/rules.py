@@ -1,4 +1,5 @@
 from pathlib import Path
+from sys import stderr
 import click
 from sigma.collection import SigmaCollection
 
@@ -10,7 +11,7 @@ def load_rules(input, file_pattern):
             input,
             recursion_pattern="**/" + file_pattern,
         )
-        with click.progressbar(list(rule_paths), label="Parsing Sigma rules") as progress_rule_paths:
+        with click.progressbar(list(rule_paths), label="Parsing Sigma rules", file=stderr) as progress_rule_paths:
             rule_collection = SigmaCollection.load_ruleset(
                 progress_rule_paths,
                 collect_errors=True,
