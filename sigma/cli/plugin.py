@@ -49,6 +49,29 @@ def get_plugin(uuid : bool, plugin_identifier : str) -> SigmaPlugin:
     except SigmaPluginNotFoundError as e:
         raise click.exceptions.ClickException(str(e))
 
+# Display plugin details
+@plugin_group.command(name="show", help="Show details about plugin.")
+@click.option("--uuid", "-u", is_flag=True, help="Show plugin by UUID.")
+@click.argument("plugin-identifier")
+def show_plugin(uuid : bool, plugin_identifier : str):
+    plugin = get_plugin(uuid, plugin_identifier)
+    table = PrettyTable()
+    table.field_names = ("Property", "Value")
+    table.add_rows([
+        ("Identifier", plugin.id),
+        ("UUID", plugin.uuid),
+        ("Type", str(plugin.type)),
+        ("State", str(plugin.state)),
+        ("Package", plugin.package),
+        ("Description", fill(plugin.description, width=60)),
+        ("Required pySigma version", plugin.pysigma_version),
+        ("Compatible?", plugin.is_compatible()),
+        ("Project URL", plugin.project_url),
+        ("Report Issue URL", plugin.report_issue_url),
+    ])
+    table.align = "l"
+    click.echo(table.get_string())
+
 @plugin_group.command(name="install", help="Install plugin by identifier or UUID.")
 @click.option("--uuid", "-u", is_flag=True, help="Install plugin by UUID.")
 @click.option("--compatibility-check/--no-compatibility-check", "-c/-C", default=True, help="Enable or disable plugin compatibility check.")
@@ -70,3 +93,14 @@ def uninstall_plugin(uuid : bool, plugin_identifiers : List[str]):
         plugin = get_plugin(uuid, plugin_identifier)
         plugin.uninstall()
         click.echo(f"Successfully uninstalled plugin '{plugin_identifier}'")
+
+# Report issue in plugin by opening the issue reporting URL in the default browser
+@plugin_group.command(name="report-issue", help="Report issue in plugin by opening the issue reporting URL in the default browser.")
+@click.option("--uuid", "-u", is_flag=True, help="Report issue in plugin by UUID.")
+@click.argument("plugin-identifier")
+def report_issue(uuid : bool, plugin_identifier : str):
+    plugin = get_plugin(uuid, plugin_identifier)
+    if plugin.report_issue_url:
+        click.launch(plugin.report_issue_url)
+    else:
+        raise click.exceptions.ClickException("Plugin does not have an issue reporting URL!")
