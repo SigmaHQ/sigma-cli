@@ -9,7 +9,8 @@ try:
 except ImportError:
     pass
 
-import pkg_resources
+import importlib.metadata as metadata
+import click
 from .list import list_group
 from .convert import convert
 from .check import check
@@ -23,7 +24,7 @@ def cli():
 @click.command()
 def version():
     """Print version of Sigma CLI."""
-    click.echo(pkg_resources.get_distribution("sigma-cli").version)
+    click.echo(metadata.version("sigma-cli"))
 
 def main():
     cli.add_command(analyze_group)
