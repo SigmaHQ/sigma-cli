@@ -36,13 +36,13 @@ def test_check_with_issues():
     cli = CliRunner()
     result = cli.invoke(check, ["tests/files/issues"])
     assert result.exit_code == 0
-    assert "3 issues" in result.stdout
+    assert "4 issues" in result.stdout
 
 def test_check_with_issues_exclusions():
     cli = CliRunner()
     result = cli.invoke(check, ["--validation-config", "tests/files/validation_config.yml", "tests/files/issues"])
     assert result.exit_code == 0
-    assert "1 issues" in result.stdout
+    assert "2 issues" in result.stdout
 
 def test_check_fail_on_issues():
     cli = CliRunner()
