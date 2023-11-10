@@ -3,13 +3,18 @@ from sigma.rule import SigmaRule, SigmaLevel
 from sigma.collection import SigmaCollection
 from collections import defaultdict
 
-def score_count(rules : Iterable[SigmaRule]) -> int:
+
+def score_count(rules: Iterable[SigmaRule]) -> int:
     """Return count of rules."""
     return len(list(rules))
 
-def score_max(rules : Iterable[SigmaRule]) -> int:
+
+def score_max(rules: Iterable[SigmaRule]) -> int:
     """Return maximum rule level value."""
-    return max(map(lambda rule: rule.level.value if rule.level is not None else 0, rules))
+    return max(
+        map(lambda rule: rule.level.value if rule.level is not None else 0, rules)
+    )
+
 
 rule_level_scores = {
     None: 1,
@@ -19,12 +24,16 @@ rule_level_scores = {
     SigmaLevel.HIGH: 8,
     SigmaLevel.CRITICAL: 12,
 }
-def rule_score(rule : SigmaRule) -> int:
+
+
+def rule_score(rule: SigmaRule) -> int:
     """Calculate rule score according to rule_level_scores."""
     return rule_level_scores[rule.level]
 
-def score_level(rules : Iterable[SigmaRule]) -> int:
+
+def score_level(rules: Iterable[SigmaRule]) -> int:
     return sum(map(rule_score, rules))
+
 
 score_functions = {
     "count": (score_count, "Count of rules"),
@@ -32,11 +41,12 @@ score_functions = {
     "level": (score_level, "Summarized level score"),
 }
 
+
 def calculate_attack_scores(
-        rules : SigmaCollection,
-        score_function : Callable[[Iterable[SigmaRule]], int],
-        no_subtechniques : bool = False
-        ) -> Dict[str, int]:
+    rules: SigmaCollection,
+    score_function: Callable[[Iterable[SigmaRule]], int],
+    no_subtechniques: bool = False,
+) -> Dict[str, int]:
     """Generate MITRE™️ ATT&CK Navigator heatmap according to scoring function."""
     attack_rules = defaultdict(list)
     for rule in rules:
@@ -46,7 +56,4 @@ def calculate_attack_scores(
                 if no_subtechniques:
                     technique = technique.split(".")[0]
                 attack_rules[technique].append(rule)
-    return {
-        attack: score_function(rules)
-        for attack, rules in attack_rules.items()
-    }
+    return {attack: score_function(rules) for attack, rules in attack_rules.items()}
