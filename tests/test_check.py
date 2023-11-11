@@ -1,11 +1,13 @@
 from click.testing import CliRunner
 from sigma.cli.check import check
 
+
 def test_check_help():
     cli = CliRunner()
     result = cli.invoke(check, ["--help"])
     assert result.exit_code == 0
     assert len(result.stdout.split()) > 20
+
 
 def test_check_valid():
     cli = CliRunner()
@@ -14,6 +16,7 @@ def test_check_valid():
     assert "0 errors" in result.stdout
     assert "0 condition errors" in result.stdout
     assert "0 issues" in result.stdout
+
 
 def test_check_stdin():
     cli = CliRunner()
@@ -24,6 +27,7 @@ def test_check_stdin():
     assert "0 condition errors" in result.stdout
     assert "0 issues" in result.stdout
 
+
 def test_check_invalid():
     cli = CliRunner()
     result = cli.invoke(check, ["tests/files/invalid"])
@@ -32,17 +36,27 @@ def test_check_invalid():
     assert "1 condition errors" in result.stdout
     assert "0 issues" in result.stdout
 
+
 def test_check_with_issues():
     cli = CliRunner()
     result = cli.invoke(check, ["tests/files/issues"])
     assert result.exit_code == 0
     assert "4 issues" in result.stdout
 
+
 def test_check_with_issues_exclusions():
     cli = CliRunner()
-    result = cli.invoke(check, ["--validation-config", "tests/files/validation_config.yml", "tests/files/issues"])
+    result = cli.invoke(
+        check,
+        [
+            "--validation-config",
+            "tests/files/validation_config.yml",
+            "tests/files/issues",
+        ],
+    )
     assert result.exit_code == 0
     assert "2 issues" in result.stdout
+
 
 def test_check_fail_on_issues():
     cli = CliRunner()
