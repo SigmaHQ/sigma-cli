@@ -58,12 +58,7 @@ validators = plugins.validators
     type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
 )
 def check(
-    input,
-    validation_config,
-    file_pattern,
-    fail_on_error,
-    fail_on_issues,
-    exclude
+    input, validation_config, file_pattern, fail_on_error, fail_on_issues, exclude
 ):
     """Check Sigma rules for validity and best practices (not yet implemented)."""
     if (
@@ -72,11 +67,17 @@ def check(
         if exclude:
             click.echo(f"Ignoring these validators: {exclude}")
         exclude_lower = [excluded.lower() for excluded in exclude]
-        validators_filtered = [ validator for validator in validators.values() if validator.__name__.lower() not in exclude_lower]
+        validators_filtered = [
+            validator
+            for validator in validators.values()
+            if validator.__name__.lower() not in exclude_lower
+        ]
         rule_validator = SigmaValidator(validators_filtered)
     else:
         if exclude:
-            click.echo(f"A configuration file and the `--exclude` parameter was set, ignoring the `--exclude` parameter.")
+            click.echo(
+                f"A configuration file and the `--exclude` parameter was set, ignoring the `--exclude` parameter."
+            )
         rule_validator = SigmaValidator.from_yaml(validation_config.read(), validators)
 
     try:
