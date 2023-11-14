@@ -1,0 +1,13 @@
+title: Test rule
+id: 5013332f-8a70-4e04-bcc1-06a911111111
+related:
+  - id: 5013332f-8a70-4e04-bcc1-06a911111112
+    type: Something
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\httpd.exe'
+    Image|endswith: '\cmd.exe'
+  condition: selection

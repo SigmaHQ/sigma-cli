@@ -1,4 +1,5 @@
 from click.testing import CliRunner
+
 from sigma.cli.check import check
 
 
@@ -63,3 +64,18 @@ def test_check_fail_on_issues():
     result = cli.invoke(check, ["--fail-on-issues", "tests/files/issues"])
     assert result.exit_code == 1
     assert "Validation issue summary" in result.stdout
+
+
+def test_check_exclude():
+    cli = CliRunner()
+    result = cli.invoke(check, ["--fail-on-issues",
+                                "--exclude",
+                                "InvalidRelatedTypeValidator",
+                                "--exclude",
+                                "StatusExistenceValidator",
+                                "--exclude",
+                                "DateExistenceValidator",
+                                "tests/files/issues/sigma_rule_with_bad_references.yml"])
+    assert result.exit_code == 0
+    assert "Ignoring these validators" in result.stdout
+    assert "InvalidRelatedTypeValidator" in result.stdout
