@@ -1,14 +1,15 @@
 import pathlib
-from textwrap import fill
-import click
 from collections import Counter
-from prettytable import PrettyTable
 from sys import stderr
+from textwrap import fill
 
-from sigma.exceptions import SigmaConditionError, SigmaError
+import click
+from prettytable import PrettyTable
+
 from sigma.cli.rules import load_rules
-from sigma.validation import SigmaValidator
+from sigma.exceptions import SigmaConditionError, SigmaError
 from sigma.plugins import InstalledSigmaPlugins
+from sigma.validation import SigmaValidator
 
 plugins = InstalledSigmaPlugins.autodiscover()
 validators = plugins.validators
@@ -42,6 +43,14 @@ validators = plugins.validators
     show_default=True,
     help="Fail on Sigma rule validation issues.",
 )
+@click.option(
+    "--exclude",
+    "-e",
+    default=[],
+    show_default=True,
+    multiple=True,
+    help="List of validators to exclude from the validation. Repeat --exclude for multiple exclusions.",
+)
 @click.argument(
     "input",
     nargs=-1,
@@ -54,13 +63,20 @@ def check(
     file_pattern,
     fail_on_error,
     fail_on_issues,
+    exclude
 ):
     """Check Sigma rules for validity and best practices (not yet implemented)."""
     if (
         validation_config is None
     ):  # no validation config provided, use basic config with all validators
-        rule_validator = SigmaValidator(validators.values())
+        if exclude:
+            click.echo(f"Ignoring these validators: {exclude}")
+        exclude_lower = [excluded.lower() for excluded in exclude]
+        validators_filtered = [ validator for validator in validators.values() if validator.__name__.lower() not in exclude_lower]
+        rule_validator = SigmaValidator(validators_filtered)
     else:
+        if exclude:
+            click.echo(f"A configuration file and the `--exclude` parameter was set, ignoring the `--exclude` parameter.")
         rule_validator = SigmaValidator.from_yaml(validation_config.read(), validators)
 
     try:
