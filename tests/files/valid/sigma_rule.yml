@@ -1,5 +1,6 @@
 title: Test rule
 id: 5013332f-8a70-4e04-bcc1-06a98a2cca2e
+status: stable
 level: high
 logsource:
   category: process_creation

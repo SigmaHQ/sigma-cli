@@ -42,7 +42,7 @@ def test_check_with_issues():
     cli = CliRunner()
     result = cli.invoke(check, ["tests/files/issues"])
     assert result.exit_code == 0
-    assert "4 issues" in result.stdout
+    assert "11 issues" in result.stdout
 
 
 def test_check_with_issues_exclusions():
@@ -56,7 +56,7 @@ def test_check_with_issues_exclusions():
         ],
     )
     assert result.exit_code == 0
-    assert "2 issues" in result.stdout
+    assert "9 issues" in result.stdout
 
 
 def test_check_fail_on_issues():
