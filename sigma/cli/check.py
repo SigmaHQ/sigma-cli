@@ -49,7 +49,7 @@ severity_color = {"low": "green", "medium": "yellow", "high": "red"}
 )
 @click.option(
     "--exclude",
-    "-e",
+    "-x",
     default=[],
     show_default=True,
     multiple=True,
@@ -73,8 +73,8 @@ def check(
         exclude_lower = [excluded.lower() for excluded in exclude]
         validators_filtered = [
             validator
-            for validator in validators.values()
-            if validator.__name__.lower() not in exclude_lower
+            for name, validator in validators.items()
+            if name.lower() not in exclude_lower
         ]
         rule_validator = SigmaValidator(validators_filtered)
     else:
