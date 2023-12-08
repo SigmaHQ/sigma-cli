@@ -138,7 +138,7 @@ def check(
                 )
                 additional_fields = " ".join(
                     [
-                        f"{field.name}={issue.__getattribute__(field.name) or '-'}"
+                        f"{field.name}={click.style(issue.__getattribute__(field.name) or '-', bold=True, fg='blue')}"
                         for field in fields(issue)
                         if field.name not in ("rules", "severity", "description")
                     ]
@@ -146,7 +146,7 @@ def check(
 
                 click.echo(
                     "issue="
-                    + click.style(issue.__class__.__name__, bold=True, fg="blue")
+                    + click.style(issue.__class__.__name__, bold=True, fg="cyan")
                     + " severity="
                     + click.style(
                         issue.severity.name.lower(),
@@ -157,8 +157,7 @@ def check(
                     + click.style(issue.description, bold=True, fg="blue")
                     + " rule="
                     + click.style(rules, bold=True, fg="blue")
-                    + " "
-                    + additional_fields
+                    + f" {additional_fields}"
                 )
                 issue_counter.update((issue.__class__,))
 
