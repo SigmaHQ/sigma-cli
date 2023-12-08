@@ -3,6 +3,8 @@ from collections import Counter
 from sys import stderr
 from textwrap import fill
 
+from dataclasses import fields
+
 import click
 from prettytable import PrettyTable
 
@@ -13,6 +15,8 @@ from sigma.validation import SigmaValidator
 
 plugins = InstalledSigmaPlugins.autodiscover()
 validators = plugins.validators
+
+severity_color = {"low": "green", "medium": "yellow", "high": "red"}
 
 
 @click.command()
@@ -123,7 +127,38 @@ def check(
         if issue_count > 0:
             click.echo("=== Issues ===")
             for issue in issues:
-                click.echo(issue)
+                # Need to split SigmaValidationIssue __str__
+                rules = ", ".join(
+                    [
+                        str(rule.source)
+                        if rule.source is not None
+                        else str(rule.id) or rule.title
+                        for rule in issue.rules
+                    ]
+                )
+                additional_fields = " ".join(
+                    [
+                        f"{field.name}={click.style(issue.__getattribute__(field.name) or '-', bold=True, fg='blue')}"
+                        for field in fields(issue)
+                        if field.name not in ("rules", "severity", "description")
+                    ]
+                )
+
+                click.echo(
+                    "issue="
+                    + click.style(issue.__class__.__name__, bold=True, fg="cyan")
+                    + " severity="
+                    + click.style(
+                        issue.severity.name.lower(),
+                        bold=True,
+                        fg=severity_color[issue.severity.name.lower()],
+                    )
+                    + " description="
+                    + click.style(issue.description, bold=True, fg="blue")
+                    + " rule="
+                    + click.style(rules, bold=True, fg="blue")
+                    + f" {additional_fields}"
+                )
                 issue_counter.update((issue.__class__,))
 
         # TODO: From Python 3.10 the commented line below can be used.
