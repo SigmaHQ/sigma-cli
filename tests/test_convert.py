@@ -32,7 +32,8 @@ def test_convert_output_list_of_str():
 
 def test_convert_stdin():
     cli = CliRunner()
-    input = open("tests/files/valid/sigma_rule.yml", "rt").read()
+    with open("tests/files/valid/sigma_rule.yml", "rt") as yml_file:
+        input = yml_file.read()
     result = cli.invoke(
         convert,
         [

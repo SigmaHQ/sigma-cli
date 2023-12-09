@@ -27,7 +27,6 @@ except ImportError:
     pass
 
 import importlib.metadata as metadata
-import click
 from .list import list_group
 from .convert import convert
 from .check import check
