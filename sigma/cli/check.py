@@ -78,7 +78,7 @@ def check(
 
         if len(exclude_invalid) > 0:
             click.echo(
-                f"Invalid validators name : {exclude_invalid} use 'sigma list validator'"
+                f"Invalid validators name : {exclude_invalid} use 'sigma list validators'"
             )
         if len(exclude_valid) > 0:
             click.echo(f"Ignoring these validators : {exclude_valid}'")
