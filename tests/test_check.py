@@ -68,14 +68,22 @@ def test_check_fail_on_issues():
 
 def test_check_exclude():
     cli = CliRunner()
-    result = cli.invoke(check, ["--fail-on-issues",
-                                "--exclude",
-                                "InvalidRelatedTypeValidator",
-                                "--exclude",
-                                "StatusExistenceValidator",
-                                "--exclude",
-                                "DateExistenceValidator",
-                                "tests/files/issues/sigma_rule_with_bad_references.yml"])
+    result = cli.invoke(
+        check,
+        [
+            "--fail-on-issues",
+            "--exclude",
+            "Invalid_Related_Type",
+            "--exclude",
+            "status_existence",
+            "-x",
+            "date_existence",
+            "--exclude",
+            "MyValidator",
+            "tests/files/issues/sigma_rule_with_bad_references.yml",
+        ],
+    )
     assert result.exit_code == 0
+    assert "Invalid validators name" in result.stdout
+    assert "myvalidator" in result.stdout
     assert "Ignoring these validators" in result.stdout
-    assert "InvalidRelatedTypeValidator" in result.stdout

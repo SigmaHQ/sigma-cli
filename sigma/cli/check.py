@@ -49,7 +49,7 @@ severity_color = {"low": "green", "medium": "yellow", "high": "red"}
 )
 @click.option(
     "--exclude",
-    "-e",
+    "-x",
     default=[],
     show_default=True,
     multiple=True,
@@ -68,13 +68,25 @@ def check(
     if (
         validation_config is None
     ):  # no validation config provided, use basic config with all validators
-        if exclude:
-            click.echo(f"Ignoring these validators: {exclude}")
         exclude_lower = [excluded.lower() for excluded in exclude]
+        exclude_invalid = [
+            excluded for excluded in exclude_lower if excluded not in validators.keys()
+        ]
+        exclude_valid = [
+            excluded for excluded in exclude_lower if excluded not in exclude_invalid
+        ]
+
+        if len(exclude_invalid) > 0:
+            click.echo(
+                f"Invalid validators name : {exclude_invalid} use 'sigma list validators'"
+            )
+        if len(exclude_valid) > 0:
+            click.echo(f"Ignoring these validators : {exclude_valid}'")
+
         validators_filtered = [
             validator
-            for validator in validators.values()
-            if validator.__name__.lower() not in exclude_lower
+            for name, validator in validators.items()
+            if name.lower() not in exclude_valid
         ]
         rule_validator = SigmaValidator(validators_filtered)
     else:
