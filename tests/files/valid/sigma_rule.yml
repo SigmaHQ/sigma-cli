@@ -1,7 +1,9 @@
 title: Test rule
 id: 5013332f-8a70-4e04-bcc1-06a98a2cca2e
+description: it is a valid rule
 status: stable
 level: high
+date: 2023-12-09
 logsource:
   category: process_creation
   product: windows

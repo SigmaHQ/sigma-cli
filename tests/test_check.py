@@ -21,7 +21,8 @@ def test_check_valid():
 
 def test_check_stdin():
     cli = CliRunner()
-    input = open("tests/files/valid/sigma_rule.yml", "rt").read()
+    with open("tests/files/valid/sigma_rule.yml", "rt") as yml_file:
+        input = yml_file.read()
     result = cli.invoke(check, ["-"], input=input)
     assert result.exit_code == 0
     assert "0 errors" in result.stdout
@@ -41,8 +42,8 @@ def test_check_invalid():
 def test_check_with_issues():
     cli = CliRunner()
     result = cli.invoke(check, ["tests/files/issues"])
-    assert result.exit_code == 0
-    assert "11 issues" in result.stdout
+    assert result.exit_code == 1
+    assert "12 issues" in result.stdout
 
 
 def test_check_with_issues_exclusions():
@@ -55,8 +56,8 @@ def test_check_with_issues_exclusions():
             "tests/files/issues",
         ],
     )
-    assert result.exit_code == 0
-    assert "9 issues" in result.stdout
+    assert result.exit_code == 1
+    assert "10 issues" in result.stdout
 
 
 def test_check_fail_on_issues():
@@ -83,7 +84,7 @@ def test_check_exclude():
             "tests/files/issues/sigma_rule_with_bad_references.yml",
         ],
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 1
     assert "Invalid validators name" in result.stdout
     assert "myvalidator" in result.stdout
     assert "Ignoring these validators" in result.stdout
