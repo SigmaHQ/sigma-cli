@@ -1,5 +1,7 @@
 import click
 import sys
+import requests
+from packaging.version import Version
 
 try:
     import sigma.parser.base
@@ -42,7 +44,24 @@ def cli():
 @click.command()
 def version():
     """Print version of Sigma CLI."""
-    click.echo(metadata.version("sigma-cli"))
+    try:
+        data = requests.get("https://pypi.org/pypi/sigma-cli/json").json()
+        versions = list(data["releases"].keys())
+        versions.sort(key=Version, reverse=True)
+        last_version = versions[0]
+    except:
+        last_version = "0.0.0"
+
+    current_version = metadata.version("sigma-cli")
+    if last_version == "0.0.0":
+        click.echo(current_version)
+    else:
+        color = "green" if last_version == current_version else "red"
+        click.echo(
+            f"{current_version} (online pypi.org: "
+            + click.style(last_version, bold=True, fg=color)
+            + ")"
+        )
 
 
 def main():

@@ -136,6 +136,27 @@ def install_plugin(
             )
 
 
+@plugin_group.command(name="upgrade", help="Upgrade installed plugin.")
+@click.option(
+    "--compatibility-check/--no-compatibility-check",
+    "-c/-C",
+    default=True,
+    help="Enable or disable plugin compatibility check.",
+)
+def upgrade_plugin(compatibility_check: bool):
+    plugins_dir = SigmaPluginDirectory.default_plugin_directory()
+    for plugin_id in plugins_dir.plugins:
+        plugin = plugins_dir.get_plugin_by_uuid(uuid=plugin_id)
+        if plugin.is_installed():
+            if not compatibility_check or plugin.is_compatible():
+                plugin.upgrade()
+                click.echo(f"Successfully upgrade plugin '{plugin.id}'")
+            else:
+                click.echo(
+                    f"Plugin '{plugin.id}' not compatible with installed pySigma version"
+                )
+
+
 @plugin_group.command(name="uninstall", help="Uninstall plugin by identifier or UUID.")
 @click.option("--uuid", "-u", is_flag=True, help="Uninstall plugin by UUID.")
 @click.argument("plugin-identifiers", nargs=-1)
