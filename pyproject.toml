@@ -23,12 +23,13 @@ packages = [
 python = "^3.8"
 click = "^8.0.3"
 prettytable = "^3.1.1"
-pysigma = "^0.10.4"
+pysigma = "^0.10.10"
 colorama = "^0.4.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
 pytest-cov = "^2.11.1"
+defusedxml = "^0.7.1"
 
 [tool.poetry.scripts]
 sigma = "sigma.cli.main:main"
