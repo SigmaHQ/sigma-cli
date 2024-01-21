@@ -98,43 +98,48 @@ def test_attack_generate_no_subtechniques():
 
 @pytest.fixture
 def sigma_rules():
-    logsource = SigmaLogSource("test")
+    logsource = SigmaLogSource(category="test")
     detections = SigmaDetections(
         {"test": SigmaDetection([SigmaDetectionItem("field", [], "value")])}, ["test"]
     )
     return [
         SigmaRule(
-            "Medium severity rule",
-            logsource,
-            detections,
+            title="Medium severity rule",
+            logsource=logsource,
+            detection=detections,
             level=SigmaLevel.MEDIUM,
             tags=[SigmaRuleTag("test", "tag"), SigmaRuleTag("attack", "t1234.001")],
         ),
         SigmaRule(
-            "None severity rule",
-            logsource,
-            detections,
+            title="None severity rule",
+            logsource=logsource,
+            detection=detections,
             tags=[SigmaRuleTag("attack", "t1234.001")],
         ),
-        SigmaRule("Low severity rule", logsource, detections, level=SigmaLevel.LOW),
         SigmaRule(
-            "Critical severity rule",
-            logsource,
-            detections,
+            title="Low severity rule",
+            logsource=logsource,
+            detection=detections,
+            level=SigmaLevel.LOW
+        ),
+        SigmaRule(
+            title="Critical severity rule",
+            logsource=logsource,
+            detection=detections,
             level=SigmaLevel.CRITICAL,
             tags=[SigmaRuleTag("attack", "t4321")],
         ),
         SigmaRule(
-            "Informational severity rule",
-            logsource,
-            detections,
+            title="Informational severity rule",
+            logsource=logsource,
+            detection=detections,
             level=SigmaLevel.INFORMATIONAL,
             tags=[SigmaRuleTag("attack", "t4321")],
         ),
         SigmaRule(
-            "High severity rule",
-            logsource,
-            detections,
+            title="High severity rule",
+            logsource=logsource,
+            detection=detections,
             level=SigmaLevel.HIGH,
             tags=[SigmaRuleTag("attack", "t4321")],
         ),

@@ -66,6 +66,29 @@ def list_formats(backend):
     table.align = "l"
     click.echo(table.get_string())
 
+@list_group.command(
+    name="correlation-methods", help="List correlation methods supported by specified backend."
+)
+@click.argument(
+    "backend",
+    type=click.Choice(plugins.backends.keys()),
+)
+def list_correlation_methods(backend):
+    correlation_methods = plugins.backends[backend].correlation_methods
+    if correlation_methods is None:
+        click.echo("No correlation supported by specified backend.")
+    else:
+        table = PrettyTable()
+        table.field_names = ("Method", "Description")
+        table.add_rows(
+            [
+                (name, fill(description, width=60))
+                for name, description in correlation_methods.items()
+            ]
+        )
+        table.align = "l"
+        click.echo(table.get_string())
+
 
 @list_group.command(name="pipelines", help="List processing pipelines.")
 @click.argument("backend", required=False, type=click.Choice(plugins.backends.keys()))

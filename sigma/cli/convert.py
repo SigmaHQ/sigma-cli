@@ -106,6 +106,11 @@ class ChoiceWithPluginHint(click.Choice):
     help="Select backend output format",
 )
 @click.option(
+    "--correlation-method",
+    "-c",
+    help="Select method for generation of correlation queries. If not given the default method of the backend is used."
+)
+@click.option(
     "--file-pattern",
     "-P",
     default="*.yml",
@@ -160,6 +165,7 @@ def convert(
     without_pipeline,
     pipeline_check,
     format,
+    correlation_method,
     skip_unsupported,
     output,
     encoding,
@@ -254,10 +260,25 @@ def convert(
             + " to list all available formats of the target.",
             param_hint="format",
         )
+    
+    if correlation_method is not None:
+        correlation_methods = backend.correlation_methods
+        if correlation_methods is None:
+            raise click.BadParameter(
+                f"Backend '{target}' does not support correlations but correlation method was provided on command line.",
+                param_hint="correlation_method",
+            )
+        elif correlation_method not in correlation_methods.keys():
+            raise click.BadParameter(
+                f"Correlation method '{correlation_method}' is not supported by backend '{target}'. Run "
+                + click.style(f"sigma list correlation-methods {target}", bold=True, fg="green")
+                + " to list all available correlation methods of the target.",
+                param_hint="correlation_method",
+            )
 
     try:
         rule_collection = load_rules(input, file_pattern)
-        result = backend.convert(rule_collection, format)
+        result = backend.convert(rule_collection, format, correlation_method)
         if isinstance(result, str):  # String result
             click.echo(bytes(result, encoding), output)
         elif isinstance(result, bytes):  # Bytes result: only allow to write it to file.
@@ -295,6 +316,8 @@ def convert(
             )
     except SigmaError as e:
         click.echo("Error while conversion: " + str(e), err=True)
+    except NotImplementedError as e:
+        click.echo("Feature required for conversion of Sigma rule is not supported by backend: " + str(e), err=True)
 
     if len(backend.errors) > 0:
         click.echo("\nIgnored errors:", err=True)

@@ -2,6 +2,7 @@ from typing import Counter
 import pytest
 from click.testing import CliRunner
 from sigma.cli.list import (
+    list_correlation_methods,
     list_group,
     list_pipelines,
     list_targets,
@@ -83,6 +84,16 @@ def test_format_list():
         and counts["-"] >= 40
     )
 
+def test_corelation_methods_list():
+    cli = CliRunner()
+    cli_list = cli.invoke(list_correlation_methods, ["text_query_test"])
+    counts = Counter(cli_list.output)
+    assert (
+        cli_list.exit_code == 0
+        and len(cli_list.output.split()) >= 5
+        and counts["|"] >= 6
+        and counts["-"] >= 40
+    )
 
 def test_pipeline_list_with_backend():
     cli = CliRunner()

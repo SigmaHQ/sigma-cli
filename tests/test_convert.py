@@ -1,7 +1,7 @@
 from click.testing import CliRunner
 import pytest
 from sigma.cli.convert import convert
-import sigma.backends.test
+import sigma.backends.test.backend
 
 
 def test_convert_help():
@@ -77,7 +77,7 @@ def test_convert_output_list_of_dict_indent():
 def test_convert_output_str():
     cli = CliRunner()
     result = cli.invoke(
-        convert, ["-t", "text_query_test", "-f", "str", "tests/files/valid"]
+        convert, ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"]
     )
     assert "ParentImage" in result.stdout
 
@@ -246,3 +246,20 @@ def test_convert_output_backend_option_list():
         ],
     )
     assert '[123, "test"]' in result.stdout
+
+def test_convert_correlation_method_without_backend_correlation_support(monkeypatch):
+    monkeypatch.setattr(sigma.backends.test.backend.TextQueryTestBackend, "correlation_methods", None)
+    cli = CliRunner()
+    result = cli.invoke(
+        convert, ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"]
+    )
+    assert result.exit_code != 0
+    assert "Backend 'text_query_test' does not support correlation" in result.stdout
+
+def test_convert_invalid_correlation_method():
+    cli = CliRunner()
+    result = cli.invoke(
+        convert, ["-t", "text_query_test", "-f", "str", "-c", "invalid", "tests/files/valid"]
+    )
+    assert result.exit_code != 0
+    assert "Correlation method 'invalid' is not supported" in result.stdout
