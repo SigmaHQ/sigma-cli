@@ -3,6 +3,8 @@ import sys
 import requests
 from packaging.version import Version
 
+from sigma.cli.pysigma import check_pysigma
+
 try:
     import sigma.parser.base
 
@@ -70,6 +72,7 @@ def main():
     cli.add_command(list_group)
     cli.add_command(convert)
     cli.add_command(check)
+    cli.add_command(check_pysigma)
     cli.add_command(version)
     cli()
 

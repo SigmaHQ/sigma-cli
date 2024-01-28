@@ -10,6 +10,8 @@ from sigma.exceptions import SigmaPluginNotFoundError
 from prettytable import PrettyTable
 from textwrap import fill
 
+from sigma.cli.pysigma import check_pysigma as check_pysigma_command
+
 
 @click.group(
     name="plugin",
@@ -116,14 +118,20 @@ def show_plugin(uuid: bool, plugin_identifier: str):
 @plugin_group.command(name="install", help="Install plugin by identifier or UUID.")
 @click.option("--uuid", "-u", is_flag=True, help="Install plugin by UUID.")
 @click.option(
-    "--compatibility-check/--no-compatibility-check",
-    "-c/-C",
+    "--compatibility-check/--force-install",
+    "-c/-f",
     default=True,
     help="Enable or disable plugin compatibility check.",
 )
+@click.option(
+    "--check-pysigma/--no-check-pysigma",
+    "-l/-L",
+    default=True,
+    help="Check after plugin installation if pySigma version is still matching the CLI requirement.",
+)
 @click.argument("plugin-identifiers", nargs=-1)
 def install_plugin(
-    uuid: bool, compatibility_check: bool, plugin_identifiers: List[str]
+    uuid: bool, compatibility_check: bool, check_pysigma: bool, plugin_identifiers: List[str]
 ):
     for plugin_identifier in plugin_identifiers:
         plugin = get_plugin(uuid, plugin_identifier)
@@ -132,9 +140,11 @@ def install_plugin(
             click.echo(f"Successfully installed plugin '{plugin_identifier}'")
         else:
             raise click.exceptions.ClickException(
-                "Plugin not compatible with installed pySigma version!"
+                "Plugin not compatible with installed pySigma version! " + click.style("Use '--force-install' or its shortcut '-f' to install anyway.", fg="green")
             )
-
+    
+    if check_pysigma:
+        check_pysigma_command()
 
 @plugin_group.command(name="upgrade", help="Upgrade installed plugin.")
 @click.option(
