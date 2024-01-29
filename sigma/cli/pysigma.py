@@ -28,6 +28,9 @@ def check_pysigma_version():
     default=False,
     help="Suppress output if check passes.",
 )
+def check_pysigma_command(quiet):
+    check_pysigma(quiet)
+
 def check_pysigma(quiet=False):
     """Check the version of pySigma against the required version of sigma-cli and reinstall on user prompt if
     necessary."""
