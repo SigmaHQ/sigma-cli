@@ -57,7 +57,7 @@ def list_plugins(plugin_type: str, plugin_state: str, compatible: bool, search: 
     norm_search = search.lower()
 
     table = PrettyTable()
-    table.field_names = ("Identifier", "Type", "State", "Description", "Compatible?")
+    table.field_names = ("Identifier", "Type", "State", "Description", "Compatible?", "Capabilities")
     table.add_rows(
         [
             (
@@ -66,6 +66,7 @@ def list_plugins(plugin_type: str, plugin_state: str, compatible: bool, search: 
                 str(plugin.state),
                 fill(plugin.description, width=60),
                 compatibility_state[plugin.is_compatible()],
+                len(plugin.capabilities),
             )
             for plugin in plugins.get_plugins(
                 compatible_only=compatible, **get_plugins_args
@@ -107,6 +108,7 @@ def show_plugin(uuid: bool, plugin_identifier: str):
             ("Description", fill(plugin.description, width=60)),
             ("Required pySigma version", plugin.pysigma_version),
             ("Compatible?", plugin.is_compatible()),
+            ("Capabilities", "\n".join(str(capability) for capability in plugin.capabilities)),
             ("Project URL", plugin.project_url),
             ("Report Issue URL", plugin.report_issue_url),
         ]
