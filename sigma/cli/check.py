@@ -12,6 +12,7 @@ from sigma.cli.rules import load_rules
 from sigma.exceptions import SigmaConditionError, SigmaError
 from sigma.plugins import InstalledSigmaPlugins
 from sigma.validation import SigmaValidator
+from sigma.rule import SigmaRule
 
 plugins = InstalledSigmaPlugins.autodiscover()
 validators = plugins.validators
@@ -113,7 +114,7 @@ def check(
                 for error in rule.errors:
                     click.echo(error)
                     rule_errors.update((error.__class__.__name__,))
-            else:  # rule has no errors, parse condition
+            elif isinstance(rule, SigmaRule):  # rule has no errors, parse condition
                 try:
                     for condition in rule.detection.parsed_condition:
                         condition.parse()

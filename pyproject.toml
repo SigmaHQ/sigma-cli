@@ -23,7 +23,7 @@ packages = [
 python = "^3.8"
 click = "^8.0.3"
 prettytable = "^3.1.1"
-pysigma = "^0.11.2"
+pysigma = "^0.11.3"
 colorama = "^0.4.6"
 
 [tool.poetry.dev-dependencies]
