@@ -19,4 +19,5 @@ def load_rules(input, file_pattern):
                 progress_rule_paths,
                 collect_errors=True,
             )
+    rule_collection.resolve_rule_references()
     return rule_collection
