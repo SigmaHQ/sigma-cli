@@ -125,6 +125,8 @@ def check(
                         f"Condition error in { str(condition.source) }:{ error }"
                     )
                     cond_errors.update((error,))
+            else:
+                check_rules.append(rule)
 
         # TODO: From Python 3.10 the commented line below can be used.
         rule_error_count = sum(rule_errors.values())

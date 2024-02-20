@@ -30,9 +30,10 @@ correlation:
     condition:
         gte: 10
 ---
-title: Multiple occurrences of base event
+title: Multiple occurrences of base event with different values
 description: This is a correlation rule
 id: 16a288b8-4ed2-440f-9984-7a128e86e006
+date: 2023-12-09
 status: test
 level: medium
 correlation:
