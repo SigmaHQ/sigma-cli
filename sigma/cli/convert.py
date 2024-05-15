@@ -311,15 +311,15 @@ def convert(
         elif isinstance(result, dict):
             click.echo(bytes(json.dumps(result, indent=json_indent), encoding))
         else:
-            click.echo(
-                f"Backend returned unexpected format {str(type(result))}", err=True
+            raise click.ClickException(
+                f"Backend returned unexpected format {str(type(result))}"
             )
     except SigmaError as e:
-        click.echo("Error while conversion: " + str(e), err=True)
+        raise click.ClickException("Error while conversion: " + str(e))
     except NotImplementedError as e:
-        click.echo("Feature required for conversion of Sigma rule is not supported by backend: " + str(e), err=True)
+        raise click.ClickException("Feature required for conversion of Sigma rule is not supported by backend: " + str(e))
 
     if len(backend.errors) > 0:
         click.echo("\nIgnored errors:", err=True)
         for rule, error in backend.errors:
-            click.echo(f"{str(rule.source)}: {str(error)}", err=True)
+            raise click.ClickException(f"{str(rule.source)}: {str(error)}")
