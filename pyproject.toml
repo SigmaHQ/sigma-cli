@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sigma-cli"
-version = "1.0.1"
+version = "1.0.2"
 description = "Sigma Command Line Interface (conversion, check etc.) based on pySigma"
 authors = ["Thomas Patzke <thomas@patzke.org>"]
 license = "LGPL-2.1-or-later"
