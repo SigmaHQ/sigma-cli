@@ -12,6 +12,7 @@ from sigma.exceptions import (
     SigmaPipelineNotAllowedForBackendError,
     SigmaPipelineNotFoundError,
 )
+from sigma.filters import SigmaFilter
 
 from sigma.cli.rules import load_rules
 from sigma.plugins import InstalledSigmaPlugins
@@ -111,6 +112,12 @@ class ChoiceWithPluginHint(click.Choice):
     help="Select method for generation of correlation queries. If not given the default method of the backend is used."
 )
 @click.option(
+    "--filter",
+    multiple=True,
+    type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
+    help="Select filters/exclusions to apply to the rules. Multiple Sigma meta filters can be applied.",
+)
+@click.option(
     "--file-pattern",
     "-P",
     default="*.yml",
@@ -166,6 +173,7 @@ def convert(
     pipeline_check,
     format,
     correlation_method,
+    filter,
     skip_unsupported,
     output,
     encoding,
@@ -178,6 +186,7 @@ def convert(
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
     into directories and converts all files matching the pattern in --file-pattern.
     """
+
     # Check if pipeline is required
     if backends[target].requires_pipeline and pipeline == () and not without_pipeline:
         raise click.UsageError(
@@ -239,6 +248,13 @@ def convert(
         """
             )
         )
+
+    # Apply filters to the processing pipeline
+    for f in filter:
+        sf: SigmaFilter = SigmaFilter.from_yaml(
+            str(open(f, "r").read())
+        )
+        processing_pipeline.items.append(sf.to_processing_item())
 
     try:
         backend: Backend = backend_class(
