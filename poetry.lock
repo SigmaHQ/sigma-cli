@@ -422,7 +422,7 @@ description = "Sigma rule processing and conversion tools"
 optional = false
 python-versions = "^3.8"
 files = []
-develop = true
+develop = false
 
 [package.dependencies]
 jinja2 = "^3.1"
@@ -432,8 +432,10 @@ pyyaml = "^6.0"
 requests = "^2.31"
 
 [package.source]
-type = "directory"
-url = "../pysigma"
+type = "git"
+url = "https://github.com/sifex/pySigma"
+reference = "sigma-filters"
+resolved_reference = "988c0350ec0f7b09f3479cdedb20e7110bfc972a"
 
 [[package]]
 name = "pytest"
@@ -601,4 +603,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "c4d5630c4e1184ad2174c5f475fcc279591edab084c3167447998b58a7e32cbf"
+content-hash = "53deb6e3108299f4fe3fa0ea347dcab0e08711bea73ba2e64507531e0eb6ddff"
