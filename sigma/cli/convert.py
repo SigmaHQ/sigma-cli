@@ -2,7 +2,7 @@ from genericpath import exists
 import json
 import pathlib
 import textwrap
-from typing import Any, Optional, Sequence
+from typing import Any, Optional, Sequence, Tuple
 import click
 
 from sigma.conversion.base import Backend
@@ -254,7 +254,7 @@ def convert(
         sf: SigmaFilter = SigmaFilter.from_yaml(
             str(open(f, "r").read())
         )
-        processing_pipeline.items.append(sf.to_processing_item())
+        processing_pipeline = sf.to_processing_pipeline() + processing_pipeline
 
     try:
         backend: Backend = backend_class(

@@ -8,5 +8,5 @@ global_filter:
     - 6f3e2987-db24-4c78-a860-b4f4095a7095 # Data Compressed - rar.exe
     - df0841c0-9846-4e9f-ad8a-7df91571771b # Login on jump host
   selection:
-      User|startswith: 'adm_'
+      User|startswith: "ADM_"
   condition: selection

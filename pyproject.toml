@@ -24,7 +24,7 @@ python = "^3.8"
 click = "^8.0.3"
 prettytable = "^3.1.1"
 # pysigma = "^0.11.3"
-pysigma = { path = "../pysigma/" }
+pysigma = { path = "../pysigma/", develop = true }
 colorama = "^0.4.6"
 
 [tool.poetry.dev-dependencies]
@@ -35,6 +35,11 @@ defusedxml = "^0.7.1"
 [tool.poetry.scripts]
 sigma = "sigma.cli.main:main"
 
+[tool.pytest.ini_options]
+python_paths = ["."]
+testpaths = ["tests"]
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
