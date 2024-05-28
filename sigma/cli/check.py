@@ -253,4 +253,4 @@ def check(
             click.echo("Check failure")
             click.get_current_context().exit(1)
     except SigmaError as e:
-        click.echo("Check error: " + str(e), err=True)
+        raise click.ClickException("Check error: " + str(e))
