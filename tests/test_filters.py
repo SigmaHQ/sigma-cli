@@ -51,3 +51,25 @@ def test_filter_with_pipeline_mapping():
     )
 
     assert 'some_other_string endswith "\\httpd.exe" and Image endswith "\\cmd.exe" and not username startswith "ADM_"\n' in result.stdout
+
+
+
+def test_filter_with_correlation_rules():
+    cli = CliRunner(
+        mix_stderr=True
+    )
+    result = cli.invoke(
+        convert, [
+
+            "-t",
+            "splunk",
+            "--pipeline",
+            "splunk_windows",
+            "--filter",
+            "./test.yml",
+            "./tests/files/valid/sigma_rule.yml",
+            "./tests/files/valid/sigma_correlation_rules.yml"
+        ],
+    )
+
+    assert 'some_other_string endswith "\\httpd.exe" and Image endswith "\\cmd.exe" and not username startswith "ADM_"\n' in result.stdout

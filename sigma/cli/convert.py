@@ -1,21 +1,19 @@
-from genericpath import exists
+import json
 import json
 import pathlib
 import textwrap
-from typing import Any, Optional, Sequence, Tuple
-import click
+from typing import Sequence
 
+import click
 from sigma.conversion.base import Backend
-from sigma.collection import SigmaCollection
 from sigma.exceptions import (
     SigmaError,
     SigmaPipelineNotAllowedForBackendError,
     SigmaPipelineNotFoundError,
 )
-from sigma.filters import SigmaFilter
+from sigma.plugins import InstalledSigmaPlugins
 
 from sigma.cli.rules import load_rules
-from sigma.plugins import InstalledSigmaPlugins
 
 plugins = InstalledSigmaPlugins.autodiscover()
 backends = plugins.backends
@@ -249,13 +247,6 @@ def convert(
             )
         )
 
-    # Apply filters to the processing pipeline
-    for f in filter:
-        sf: SigmaFilter = SigmaFilter.from_yaml(
-            str(open(f, "r").read())
-        )
-        processing_pipeline = sf.to_processing_pipeline() + processing_pipeline
-
     try:
         backend: Backend = backend_class(
             processing_pipeline=processing_pipeline,
@@ -293,7 +284,7 @@ def convert(
             )
 
     try:
-        rule_collection = load_rules(input, file_pattern)
+        rule_collection = load_rules(input + filter, file_pattern)
         result = backend.convert(rule_collection, format, correlation_method)
         if isinstance(result, str):  # String result
             click.echo(bytes(result, encoding), output)
