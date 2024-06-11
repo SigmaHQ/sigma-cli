@@ -3,11 +3,12 @@ description: The valid administrator account start with adm_
 logsource:
     category: process_creation
     product: windows
-global_filter:
+filter:
   rules:
     - 5013332f-8a70-4e04-bcc1-06a98a2cca2e
     - 6f3e2987-db24-4c78-a860-b4f4095a7095 # Data Compressed - rar.exe
     - df0841c0-9846-4e9f-ad8a-7df91571771b # Login on jump host
+    - 5d8fd9da-6916-45ef-8d4d-3fa9d19d1a64 # Base rule
   selection:
       User|startswith: "ADM_"
   condition: not selection
