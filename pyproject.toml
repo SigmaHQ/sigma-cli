@@ -24,7 +24,7 @@ python = "^3.8"
 click = "^8.0.3"
 prettytable = "^3.1.1"
 # pysigma = "^0.11.3""
-pysigma = { git = "https://github.com/sifex/pySigma", branch = "sigma-filters" }
+pysigma = { git = "https://github.com/SigmaHQ/pySigma", branch = "main" }
 colorama = "^0.4.6"
 
 [tool.poetry.dev-dependencies]

@@ -433,9 +433,9 @@ requests = "^2.31"
 
 [package.source]
 type = "git"
-url = "https://github.com/sifex/pySigma"
-reference = "sigma-filters"
-resolved_reference = "d052385070990296b089eab03a09acc8884316e8"
+url = "https://github.com/SigmaHQ/pySigma"
+reference = "main"
+resolved_reference = "3340361ac45df58414e80d7f22a39042260ca4f2"
 
 [[package]]
 name = "pytest"
@@ -603,4 +603,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "53deb6e3108299f4fe3fa0ea347dcab0e08711bea73ba2e64507531e0eb6ddff"
+content-hash = "04c348c8535936acacd972e1f09851f241fab93c71e888e17e9e0fdb6e43d44c"
