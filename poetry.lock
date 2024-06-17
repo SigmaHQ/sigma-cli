@@ -417,25 +417,21 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pysigma"
-version = "0.11.6"
+version = "0.11.7"
 description = "Sigma rule processing and conversion tools"
 optional = false
-python-versions = "^3.8"
-files = []
-develop = false
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "pysigma-0.11.7-py3-none-any.whl", hash = "sha256:0bbcbd63bf696ffb6f0d127681c6db95141f9d9047d9f5e735e907de1748d8fd"},
+    {file = "pysigma-0.11.7.tar.gz", hash = "sha256:0414db911bdb8aea11967e64a53da4288b869374135ee81a0e5e3658c7a79eb6"},
+]
 
 [package.dependencies]
-jinja2 = "^3.1"
-packaging = ">= 22.0, < 24.0"
-pyparsing = "^3.1"
-pyyaml = "^6.0"
-requests = "^2.31"
-
-[package.source]
-type = "git"
-url = "https://github.com/SigmaHQ/pySigma"
-reference = "main"
-resolved_reference = "3340361ac45df58414e80d7f22a39042260ca4f2"
+jinja2 = ">=3.1,<4.0"
+packaging = ">=22.0,<24.0"
+pyparsing = ">=3.1,<4.0"
+pyyaml = ">=6.0,<7.0"
+requests = ">=2.31,<3.0"
 
 [[package]]
 name = "pytest"
@@ -574,13 +570,13 @@ files = [
 
 [[package]]
 name = "urllib3"
-version = "2.2.1"
+version = "2.2.2"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "urllib3-2.2.1-py3-none-any.whl", hash = "sha256:450b20ec296a467077128bff42b73080516e71b56ff59a60a02bef2232c4fa9d"},
-    {file = "urllib3-2.2.1.tar.gz", hash = "sha256:d0570876c61ab9e520d776c38acbbb5b05a776d3f9ff98a5c8fd5162a444cf19"},
+    {file = "urllib3-2.2.2-py3-none-any.whl", hash = "sha256:a448b2f64d686155468037e1ace9f2d2199776e17f0a46610480d311f73e3472"},
+    {file = "urllib3-2.2.2.tar.gz", hash = "sha256:dd505485549a7a552833da5e6063639d0d177c04f23bc3864e41e5dc5f612168"},
 ]
 
 [package.extras]
@@ -603,4 +599,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "04c348c8535936acacd972e1f09851f241fab93c71e888e17e9e0fdb6e43d44c"
+content-hash = "fb02db80aff809fa19fc0b02209a7341b890cf5f1d53038c3ce098e55d198350"
