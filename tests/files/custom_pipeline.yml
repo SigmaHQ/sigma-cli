@@ -5,3 +5,4 @@ transformations:
     type: field_name_mapping
     mapping:
       ParentImage: some_other_string
+      User: username

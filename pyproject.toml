@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sigma-cli"
-version = "1.0.2"
+version = "1.0.3"
 description = "Sigma Command Line Interface (conversion, check etc.) based on pySigma"
 authors = ["Thomas Patzke <thomas@patzke.org>"]
 license = "LGPL-2.1-or-later"
@@ -23,7 +23,7 @@ packages = [
 python = "^3.8"
 click = "^8.0.3"
 prettytable = "^3.1.1"
-pysigma = "^0.11.3"
+pysigma = "^0.11.7"
 colorama = "^0.4.6"
 
 [tool.poetry.dev-dependencies]
@@ -34,6 +34,11 @@ defusedxml = "^0.7.1"
 [tool.poetry.scripts]
 sigma = "sigma.cli.main:main"
 
+[tool.pytest.ini_options]
+python_paths = ["."]
+testpaths = ["tests"]
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+

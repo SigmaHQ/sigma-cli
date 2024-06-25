@@ -88,10 +88,6 @@ correlation:
     rules:
         - base_rule_1
         - base_rule_2
-    aliases:
-        field:
-            base_rule_1: fieldC
-            base_rule_2: fieldD
     group-by:
         - fieldC
     timespan: 15m
