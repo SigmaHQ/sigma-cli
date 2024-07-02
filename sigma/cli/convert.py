@@ -4,6 +4,8 @@ import textwrap
 from typing import Sequence
 
 import click
+
+from sigma.cli.rules import load_rules
 from sigma.conversion.base import Backend
 from sigma.exceptions import (
     SigmaError,
@@ -11,8 +13,6 @@ from sigma.exceptions import (
     SigmaPipelineNotFoundError,
 )
 from sigma.plugins import InstalledSigmaPlugins
-
-from sigma.cli.rules import load_rules
 
 plugins = InstalledSigmaPlugins.autodiscover()
 backends = plugins.backends
@@ -163,6 +163,14 @@ class ChoiceWithPluginHint(click.Choice):
     required=True,
     type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
 )
+@click.option(
+    "--verbose",
+    required=False,
+    is_flag=True,
+    default=False,
+    type=click.BOOL,
+    help="Verbose output.",
+)
 def convert(
     target,
     pipeline,
@@ -178,6 +186,7 @@ def convert(
     backend_option,
     input,
     file_pattern,
+    verbose,
 ):
     """
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
@@ -321,9 +330,17 @@ def convert(
                 f"Backend returned unexpected format {str(type(result))}"
             )
     except SigmaError as e:
-        raise click.ClickException("Error while conversion: " + str(e))
+        if verbose:
+            click.echo('Error while converting')
+            raise e
+        else:
+            raise click.ClickException("Error while converting: " + str(e))
     except NotImplementedError as e:
-        raise click.ClickException("Feature required for conversion of Sigma rule is not supported by backend: " + str(e))
+        if verbose:
+            click.echo('Feature required for conversion of Sigma rule is not supported by backend')
+            raise e
+        else:
+            raise click.ClickException("Feature required for conversion of Sigma rule is not supported by backend: " + str(e))
 
     if len(backend.errors) > 0:
         click.echo("\nIgnored errors:", err=True)
