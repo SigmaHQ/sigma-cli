@@ -83,7 +83,7 @@ class ChoiceWithPluginHint(click.Choice):
     multiple=True,
     help="Specify processing pipelines as identifiers ("
     + click.style("sigma list pipelines", bold=True, fg="green")
-    + ") or YAML files",
+    + ") or YAML files or directories",
 )
 @click.option(
     "--without-pipeline",
