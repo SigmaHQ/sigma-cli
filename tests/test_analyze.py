@@ -1,6 +1,6 @@
 import pytest
 from click.testing import CliRunner
-from sigma.cli.analyze import analyze_group, analyze_attack
+from sigma.cli.analyze import analyze_group, analyze_attack, analyze_logsource
 from sigma.rule import (
     SigmaRule,
     SigmaLogSource,
@@ -18,6 +18,7 @@ from sigma.analyze.attack import (
     rule_level_scores,
     score_functions,
 )
+from sigma.analyze.stats import create_logsourcestats, get_rulelevel_mapping, format_row
 
 
 def test_analyze_group():
@@ -120,7 +121,7 @@ def sigma_rules():
             title="Low severity rule",
             logsource=logsource,
             detection=detections,
-            level=SigmaLevel.LOW
+            level=SigmaLevel.LOW,
         ),
         SigmaRule(
             title="Critical severity rule",
@@ -170,3 +171,29 @@ def test_generate_attack_scores_no_subtechniques(sigma_rules):
         "T1234": 2,
         "T4321": 3,
     }
+
+
+def test_logsource_help():
+    cli = CliRunner()
+    result = cli.invoke(analyze_logsource, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 8
+
+
+def test_logsource_get_rulelevel_mapping(sigma_rules):
+    for sigma_rule in sigma_rules:
+        if sigma_rule.level:
+            assert (
+                str(get_rulelevel_mapping(sigma_rule)).lower()
+                == sigma_rule.level.name.lower()
+            )
+        else:
+            assert str(get_rulelevel_mapping(sigma_rule)).lower() == "none"
+
+
+def test_logsource_create_logsourcestats(sigma_rules):
+    ret = create_logsourcestats(sigma_rules)
+
+    assert 'test' in ret
+    assert ret['test'].get("Overall") == len(sigma_rules)
+
