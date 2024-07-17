@@ -27,16 +27,23 @@ pysigma = "^0.11.9"
 colorama = "^0.4.6"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.2"
-pytest-cov = "^2.11.1"
+pytest = "^7.3.0"
+pytest-cov = "^4.0.0"
 defusedxml = "^0.7.1"
 
 [tool.poetry.scripts]
 sigma = "sigma.cli.main:main"
 
 [tool.pytest.ini_options]
-python_paths = ["."]
-testpaths = ["tests"]
+minversion = "6.0"
+python_files = "test_*.py"
+addopts = "--cov=sigma --cov-report term --cov-report xml:cov.xml"
+testpaths = [
+    "tests",
+]
+filterwarnings = [
+    'ignore:Unverified HTTPS request'
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
