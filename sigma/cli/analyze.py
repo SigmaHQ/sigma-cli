@@ -8,6 +8,7 @@ from sigma.data.mitre_attack import (
     mitre_attack_techniques_tactics_mapping,
     mitre_attack_version,
 )
+from sigma.analyze.stats import create_logsourcestats, format_row
 
 
 @click.group(name="analyze", help="Analyze Sigma rule sets")
@@ -126,3 +127,58 @@ def analyze_attack(
         "techniques": layer_techniques,
     }
     json.dump(layer, output, indent=2)
+
+@analyze_group.command(name="logsource", help="Create stats about logsources.")
+@click.option(
+    "--file-pattern",
+    "-P",
+    default="*.yml",
+    show_default=True,
+    help="Pattern for file names to be included in recursion into directories.",
+)
+@click.option(
+    "--sort-by",
+    "-k",
+    type=str,
+    default="Overall",
+    show_default=True,
+    help="Sort by column.",
+)
+@click.argument(
+    "output",
+    type=click.File("w"),
+)
+@click.argument(
+    "input",
+    nargs=-1,
+    required=True,
+    type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
+)
+def analyze_logsource(
+    file_pattern,
+    sort_by,
+    output,
+    input,
+):
+    rules = load_rules(input, file_pattern)
+    stats = create_logsourcestats(rules)
+
+    # Extract column header
+    headers = ["Logsource"] + list(next(iter(stats.values())).keys())
+
+    # Prepare rows
+    rows = [[key] + list(value.values()) for key, value in stats.items()]
+    sort_index = headers.index(sort_by)
+    rows.sort(key=lambda x: x[sort_index], reverse=True)
+
+    # Determine col width
+    column_widths = [
+        max(len(str(item)) for item in column) for column in zip(*([headers] + rows))
+    ]
+
+    # Print table
+    print("-+-".join("-" * width for width in column_widths), file=output)
+    print(format_row(headers, column_widths), file=output)
+    print("-+-".join("-" * width for width in column_widths), file=output)
+    for row in rows:
+        print(format_row(row, column_widths), file=output)
