@@ -84,6 +84,7 @@ def test_format_list():
         and counts["-"] >= 40
     )
 
+
 def test_corelation_methods_list():
     cli = CliRunner()
     cli_list = cli.invoke(list_correlation_methods, ["text_query_test"])
@@ -94,6 +95,7 @@ def test_corelation_methods_list():
         and counts["|"] >= 6
         and counts["-"] >= 40
     )
+
 
 def test_pipeline_list_with_backend():
     cli = CliRunner()

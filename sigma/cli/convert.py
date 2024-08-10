@@ -106,7 +106,7 @@ class ChoiceWithPluginHint(click.Choice):
 @click.option(
     "--correlation-method",
     "-c",
-    help="Select method for generation of correlation queries. If not given the default method of the backend is used."
+    help="Select method for generation of correlation queries. If not given the default method of the backend is used.",
 )
 @click.option(
     "--filter",
@@ -212,7 +212,7 @@ def convert(
             )
         )
 
-    # Merge backend options: multiple occurences of a key result in array of values
+    # Merge backend options: multiple occurrences of a key result in array of values
     backend_options = dict()
     for option in backend_option:
         for k, v in option.items():
@@ -275,7 +275,7 @@ def convert(
             + " to list all available formats of the target.",
             param_hint="format",
         )
-    
+
     if correlation_method is not None:
         correlation_methods = backend.correlation_methods
         if correlation_methods is None:
@@ -286,7 +286,9 @@ def convert(
         elif correlation_method not in correlation_methods.keys():
             raise click.BadParameter(
                 f"Correlation method '{correlation_method}' is not supported by backend '{target}'. Run "
-                + click.style(f"sigma list correlation-methods {target}", bold=True, fg="green")
+                + click.style(
+                    f"sigma list correlation-methods {target}", bold=True, fg="green"
+                )
                 + " to list all available correlation methods of the target.",
                 param_hint="correlation_method",
             )
@@ -331,16 +333,21 @@ def convert(
             )
     except SigmaError as e:
         if verbose:
-            click.echo('Error while converting')
+            click.echo("Error while converting")
             raise e
         else:
             raise click.ClickException("Error while converting: " + str(e))
     except NotImplementedError as e:
         if verbose:
-            click.echo('Feature required for conversion of Sigma rule is not supported by backend')
+            click.echo(
+                "Feature required for conversion of Sigma rule is not supported by backend"
+            )
             raise e
         else:
-            raise click.ClickException("Feature required for conversion of Sigma rule is not supported by backend: " + str(e))
+            raise click.ClickException(
+                "Feature required for conversion of Sigma rule is not supported by backend: "
+                + str(e)
+            )
 
     if len(backend.errors) > 0:
         click.echo("\nIgnored errors:", err=True)

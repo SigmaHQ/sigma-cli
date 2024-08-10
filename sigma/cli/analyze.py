@@ -128,6 +128,7 @@ def analyze_attack(
     }
     json.dump(layer, output, indent=2)
 
+
 @analyze_group.command(name="logsource", help="Create stats about logsources.")
 @click.option(
     "--file-pattern",

@@ -66,8 +66,10 @@ def list_formats(backend):
     table.align = "l"
     click.echo(table.get_string())
 
+
 @list_group.command(
-    name="correlation-methods", help="List correlation methods supported by specified backend."
+    name="correlation-methods",
+    help="List correlation methods supported by specified backend.",
 )
 @click.argument(
     "backend",

@@ -194,6 +194,5 @@ def test_logsource_get_rulelevel_mapping(sigma_rules):
 def test_logsource_create_logsourcestats(sigma_rules):
     ret = create_logsourcestats(sigma_rules)
 
-    assert 'test' in ret
-    assert ret['test'].get("Overall") == len(sigma_rules)
-
+    assert "test" in ret
+    assert ret["test"].get("Overall") == len(sigma_rules)

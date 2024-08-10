@@ -145,9 +145,11 @@ def check(
                 # Need to split SigmaValidationIssue __str__
                 rules = ", ".join(
                     [
-                        str(rule.source)
-                        if rule.source is not None
-                        else str(rule.id) or rule.title
+                        (
+                            str(rule.source)
+                            if rule.source is not None
+                            else str(rule.id) or rule.title
+                        )
                         for rule in issue.rules
                     ]
                 )
