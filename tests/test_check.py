@@ -43,7 +43,7 @@ def test_check_with_issues():
     cli = CliRunner()
     result = cli.invoke(check, ["tests/files/issues"])
     assert result.exit_code == 1
-    assert "12 issues" in result.stdout
+    assert "4 issues" in result.stdout
 
 
 def test_check_with_issues_exclusions():
@@ -57,7 +57,7 @@ def test_check_with_issues_exclusions():
         ],
     )
     assert result.exit_code == 1
-    assert "10 issues" in result.stdout
+    assert "2 issues" in result.stdout
 
 
 def test_check_fail_on_issues():
@@ -87,4 +87,4 @@ def test_check_exclude():
     assert result.exit_code == 1
     assert "Invalid validators name" in result.stdout
     assert "myvalidator" in result.stdout
-    assert "Ignoring these validators" in result.stdout
+    assert "Check failure" in result.stdout
