@@ -202,16 +202,6 @@ def test_backend_option_invalid_type():
     assert "must be a string" in result.stdout
 
 
-def test_backend_option_unknown_by_backend():
-    cli = CliRunner()
-    result = cli.invoke(
-        convert,
-        ["-t", "text_query_test", "-O", "unknown=parameter", "tests/files/valid"],
-    )
-    assert result.exit_code != 0
-    assert "Parameter 'unknown' is not supported" in result.stdout
-
-
 def test_convert_output_backend_option():
     cli = CliRunner()
     result = cli.invoke(

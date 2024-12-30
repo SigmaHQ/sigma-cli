@@ -1,17 +1,17 @@
 name: Test
 on:
   push:
-    branches: [ "*" ]
+    branches: ["*"]
   pull_request:
-    branches: [ "*" ]
+    branches: ["*"]
   workflow_dispatch:
 
 jobs:
   test:
     strategy:
       matrix:
-        os: [ 'ubuntu-20.04', 'windows-2019', 'macos-12' ]
-        python-version: [ '3.8', '3.9', '3.10', '3.11' ]
+        os: ["ubuntu-20.04", "windows-2019", "macos-latest"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
