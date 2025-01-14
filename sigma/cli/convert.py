@@ -1,12 +1,14 @@
 import json
 import pathlib
 import textwrap
+import os
 from typing import Sequence
 
 import click
 
 from sigma.cli.rules import load_rules
 from sigma.conversion.base import Backend
+from sigma.collection import SigmaCollection
 from sigma.exceptions import (
     SigmaError,
     SigmaPipelineNotAllowedForBackendError,
@@ -19,6 +21,30 @@ backends = plugins.backends
 pipelines = plugins.pipelines
 pipeline_resolver = plugins.get_pipeline_resolver()
 pipeline_list = list(pipeline_resolver.pipelines.keys())
+
+
+def ensure_dir_exists(ctx, param, value):
+    if value is None:
+        return value
+    # Split the path into its components
+    path_parts = value.split(os.sep)
+    current_path = ""
+
+    for part in path_parts:
+        current_path = os.path.join(current_path, part)
+
+        # Check if the current path exists
+        if not os.path.exists(current_path):
+            # If it doesn't exist, create it
+            click.echo(f"Creating specified output directory '{current_path}'")
+            os.makedirs(current_path, exist_ok=True)
+        elif not os.path.isdir(current_path):
+            # If it exists but is not a directory, raise an error
+            raise NotADirectoryError(
+                f"Cannot create directory '{current_path}' because a file with the same name exists."
+            )
+
+    return value
 
 
 class KeyValueParamType(click.ParamType):
@@ -106,7 +132,7 @@ class ChoiceWithPluginHint(click.Choice):
 @click.option(
     "--correlation-method",
     "-c",
-    help="Select method for generation of correlation queries. If not given the default method of the backend is used."
+    help="Select method for generation of correlation queries. If not given the default method of the backend is used.",
 )
 @click.option(
     "--filter",
@@ -125,7 +151,7 @@ class ChoiceWithPluginHint(click.Choice):
     "--skip-unsupported/--fail-unsupported",
     "-s/",
     default=False,
-    help="Skip conversion of rules that can't be handled by the backend",
+    help="Skip conversion of rules that can't be handled by the backend.",
 )
 @click.option(
     "--output",
@@ -134,6 +160,25 @@ class ChoiceWithPluginHint(click.Choice):
     default="-",
     show_default=True,
     help="Write result to specified file. '-' writes to standard output.",
+)
+@click.option(
+    "--output-dir",
+    "-od",
+    type=click.Path(
+        file_okay=False, dir_okay=True, writable=True, exists=False, resolve_path=False
+    ),
+    default=None,
+    show_default=True,
+    help="Write result in INDIVIDUAL files for each rule in specified directory.",
+    callback=ensure_dir_exists,
+)
+@click.option(
+    "--nesting-level",
+    "-nl",
+    type=int,
+    default=1,
+    show_default=True,
+    help="Write result in INDIVIDUAL files for each rule in specified directory.",
 )
 @click.option(
     "--encoding",
@@ -171,6 +216,7 @@ class ChoiceWithPluginHint(click.Choice):
     type=click.BOOL,
     help="Verbose output.",
 )
+
 def convert(
     target,
     pipeline,
@@ -187,6 +233,8 @@ def convert(
     input,
     file_pattern,
     verbose,
+    output_dir,
+    nesting_level,
 ):
     """
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
@@ -221,7 +269,6 @@ def convert(
         k: (v[0] if len(v) == 1 else v)  # if there's only one item, return it.
         for k, v in backend_options.items()
     }
-
     # Initialize processing pipeline and backend
     backend_class = backends[target]
     try:
@@ -267,7 +314,6 @@ def convert(
             f"Parameter '{param}' is not supported by backend '{target}'.",
             param_hint="backend_option",
         )
-
     if format not in backends[target].formats.keys():
         raise click.BadParameter(
             f"Output format '{format}' is not supported by backend '{target}'. Run "
@@ -275,7 +321,7 @@ def convert(
             + " to list all available formats of the target.",
             param_hint="format",
         )
-    
+
     if correlation_method is not None:
         correlation_methods = backend.correlation_methods
         if correlation_methods is None:
@@ -286,7 +332,9 @@ def convert(
         elif correlation_method not in correlation_methods.keys():
             raise click.BadParameter(
                 f"Correlation method '{correlation_method}' is not supported by backend '{target}'. Run "
-                + click.style(f"sigma list correlation-methods {target}", bold=True, fg="green")
+                + click.style(
+                    f"sigma list correlation-methods {target}", bold=True, fg="green"
+                )
                 + " to list all available correlation methods of the target.",
                 param_hint="correlation_method",
             )
@@ -294,6 +342,46 @@ def convert(
     try:
         rule_collection = load_rules(input + filter, file_pattern)
         result = backend.convert(rule_collection, format, correlation_method)
+        if output_dir:
+            writes_successful = True
+
+            # Collect all Paths for Rules
+            all_paths = []
+            for dir_path in input:
+                all_paths.extend(
+                    list(
+                        SigmaCollection.resolve_paths(
+                            [dir_path],
+                            recursion_pattern="**/" + file_pattern,
+                        )
+                    )
+                )
+            for index, path_of_input in enumerate(all_paths):
+                original_path_part_to_keep = os.path.sep.join(
+                    path_of_input.parts[-nesting_level:]
+                )
+
+                try:
+                    out_path = os.path.join(output_dir, original_path_part_to_keep)
+                    ensure_dir_exists(
+                        ctx=None, param=None, value=os.path.dirname(out_path)
+                    )
+                    with open(out_path, "w", encoding="utf-8") as f:
+                        f.write(result[index])
+                except Exception as ex:
+                    click.echo(
+                        f"Could not write translated rules into output-dir {output_dir}: \n {ex}"
+                    )
+                    writes_successful = False
+            if writes_successful:
+                click.echo(
+                    f"Written {len(result)} translated rule(s) into individual files in specified output-dir '{output_dir}'"
+                )
+            else:
+                click.echo(
+                    f"Could not write {len(result)} translated rule(s) into individual files in specified output-dir '{output_dir}'"
+                )
+
         if isinstance(result, str):  # String result
             click.echo(bytes(result, encoding), output)
         elif isinstance(result, bytes):  # Bytes result: only allow to write it to file.
@@ -331,16 +419,21 @@ def convert(
             )
     except SigmaError as e:
         if verbose:
-            click.echo('Error while converting')
+            click.echo("Error while converting")
             raise e
         else:
             raise click.ClickException("Error while converting: " + str(e))
     except NotImplementedError as e:
         if verbose:
-            click.echo('Feature required for conversion of Sigma rule is not supported by backend')
+            click.echo(
+                "Feature required for conversion of Sigma rule is not supported by backend"
+            )
             raise e
         else:
-            raise click.ClickException("Feature required for conversion of Sigma rule is not supported by backend: " + str(e))
+            raise click.ClickException(
+                "Feature required for conversion of Sigma rule is not supported by backend: "
+                + str(e)
+            )
 
     if len(backend.errors) > 0:
         click.echo("\nIgnored errors:", err=True)
