@@ -178,7 +178,7 @@ class ChoiceWithPluginHint(click.Choice):
     type=int,
     default=1,
     show_default=True,
-    help="Write result in INDIVIDUAL files for each rule in specified directory.",
+    help="To be used in combination with --output-dir. \n While writing results in individual files for each rule in the specified directory, the original hierarchical structure of the rule files is conserved for the specified levels.",
 )
 @click.option(
     "--encoding",
