@@ -3,7 +3,7 @@ import pathlib
 import textwrap
 import os
 from typing import Sequence
-
+import pathlib
 import click
 
 from sigma.cli.rules import load_rules
@@ -23,27 +23,11 @@ pipeline_resolver = plugins.get_pipeline_resolver()
 pipeline_list = list(pipeline_resolver.pipelines.keys())
 
 
-def ensure_dir_exists(ctx, param, value):
+def ensure_dir_exists(ctx, param, value: pathlib.Path):
     if value is None:
-        return value
-    # Split the path into its components
-    path_parts = value.split(os.sep)
-    current_path = ""
+        return None
 
-    for part in path_parts:
-        current_path = os.path.join(current_path, part)
-
-        # Check if the current path exists
-        if not os.path.exists(current_path):
-            # If it doesn't exist, create it
-            click.echo(f"Creating specified output directory '{current_path}'")
-            os.makedirs(current_path, exist_ok=True)
-        elif not os.path.isdir(current_path):
-            # If it exists but is not a directory, raise an error
-            raise NotADirectoryError(
-                f"Cannot create directory '{current_path}' because a file with the same name exists."
-            )
-
+    value.mkdir(parents=True, exist_ok=True)
     return value
 
 
@@ -346,7 +330,7 @@ def convert(
             writes_successful = True
 
             # Collect all Paths for Rules
-            all_paths = []
+            all_paths: list[pathlib.Path] = []
             for dir_path in input:
                 all_paths.extend(
                     list(
@@ -357,17 +341,14 @@ def convert(
                     )
                 )
             for index, path_of_input in enumerate(all_paths):
-                original_path_part_to_keep = os.path.sep.join(
-                    path_of_input.parts[-nesting_level:]
+                original_path_part_to_keep = pathlib.Path(
+                    *path_of_input.parts[-nesting_level:]
                 )
 
                 try:
-                    out_path = os.path.join(output_dir, original_path_part_to_keep)
-                    ensure_dir_exists(
-                        ctx=None, param=None, value=os.path.dirname(out_path)
-                    )
-                    with open(out_path, "w", encoding="utf-8") as f:
-                        f.write(result[index])
+                    out_path: pathlib.Path = output_dir / original_path_part_to_keep
+                    ensure_dir_exists(ctx=None, param=None, value=out_path.parent)
+                    out_path.open("w", encoding="utf-8").write(result[index])
                 except Exception as ex:
                     click.echo(
                         f"Could not write translated rules into output-dir {output_dir}: \n {ex}"
@@ -375,11 +356,11 @@ def convert(
                     writes_successful = False
             if writes_successful:
                 click.echo(
-                    f"Written {len(result)} translated rule(s) into individual files in specified output-dir '{output_dir}'"
+                    f"Written {len(result)} translated rule(s) into {len(all_paths)} individual files in specified output-dir '{output_dir}'"
                 )
             else:
                 click.echo(
-                    f"Could not write {len(result)} translated rule(s) into individual files in specified output-dir '{output_dir}'"
+                    f"Could not write {len(result)} translated rule(s) into {len(all_paths)} individual files in specified output-dir '{output_dir}'"
                 )
 
         if isinstance(result, str):  # String result

@@ -4,7 +4,7 @@ import pytest
 from sigma.cli.convert import convert
 import sigma.backends.test.backend
 import os
-
+import pathlib
 
 def test_convert_help():
     cli = CliRunner()
@@ -264,11 +264,30 @@ def test_convert_invalid_correlation_method():
     assert "Correlation method 'invalid' is not supported" in result.stdout
 
 
-def test_convert_write_to_output_dir():
+def test_convert_correlation_rule_to_output_dir(tmp_path: pathlib.Path):
     """Tests if the correct output directory is created and that multiple translated rules are stored in individual files within one single directory."""
     cli = CliRunner()
 
-    output_dir = "output_directory"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "tests/files/valid/correlation_rule.yml",
+            "--output-dir",
+            tmp_path,
+        ],
+    )
+    assert result.exit_code == 0
+    assert tmp_path.exists(), f"{tmp_path} was not created"
+    assert tmp_path.is_dir(), f"{tmp_path} is no directory"
+    assert (tmp_path / "correlation_rule.yml").exists(), "rule file was not created"
+
+
+def test_convert_write_to_output_dir(tmp_path: pathlib.Path):
+    """Tests if the correct output directory is created and that multiple translated rules are stored in individual files within one single directory."""
+    cli = CliRunner()
+
     result = cli.invoke(
         convert,
         [
@@ -276,24 +295,21 @@ def test_convert_write_to_output_dir():
             "text_query_test",
             "tests/files/valid/",
             "--output-dir",
-            output_dir,
+            tmp_path,
         ],
     )
     assert result.exit_code == 0
-    assert os.path.exists(output_dir), f"{output_dir} was not created"
-    assert os.path.exists(
-        os.path.join(output_dir, "sigma_rule.yml")
-    ), "rule file was not created"
-    shutil.rmtree(output_dir, ignore_errors=True)
+    assert tmp_path.exists(), f"{tmp_path} was not created"
+    assert tmp_path.is_dir(), f"{tmp_path} is no directory"
+    assert (tmp_path / "sigma_rule.yml").exists(), "rule file was not created"
 
 
-def test_convert_write_to_output_dir_two_nesting_level():
+def test_convert_write_to_output_dir_two_nesting_level(tmp_path: pathlib.Path):
     """Tests if the correct output directory is created and that multiple translated rules are stored in individual files, keeping the original directory structure.
     (e.g. group_one/sigma_rule.yml, group_two/another_sigma_rule.yml)
     """
     cli = CliRunner()
 
-    output_dir = "output_directory"
     result = cli.invoke(
         convert,
         [
@@ -301,32 +317,28 @@ def test_convert_write_to_output_dir_two_nesting_level():
             "text_query_test",
             "tests/files/nested_rules",
             "--output-dir",
-            output_dir,
+            tmp_path,
             "--nesting-level",
             "2",
         ],
     )
     assert result.exit_code == 0
-    assert os.path.exists(
-        output_dir
-    ), f"general output directory {output_dir} was not created"
-    dir_rule_files_group_one = os.path.join(output_dir, "group_one")
-    dir_rule_files_group_two = os.path.join(output_dir, "group_two")
-    assert os.path.exists(
-        dir_rule_files_group_one
+    assert tmp_path.exists(), f"general output directory {tmp_path} was not created"
+    dir_rule_files_group_one = tmp_path / "group_one"
+    dir_rule_files_group_two = tmp_path / "group_two"
+    assert (
+        dir_rule_files_group_one.exists()
     ), f"sub-directory {dir_rule_files_group_one} was not created"
-    assert os.path.exists(
-        dir_rule_files_group_two
+    assert (
+        dir_rule_files_group_two.exists()
     ), f"sub-directory {dir_rule_files_group_two} was not created"
 
-    path_rule_file_one = os.path.join(dir_rule_files_group_one, "sigma_rule.yml")
-    path_rule_file_two = os.path.join(
-        dir_rule_files_group_two, "another_sigma_rule.yml"
-    )
-    assert os.path.exists(
-        path_rule_file_one
+    path_rule_file_one = dir_rule_files_group_one / "sigma_rule.yml"
+    path_rule_file_two = dir_rule_files_group_two / "another_sigma_rule.yml"
+
+    assert (
+        path_rule_file_one.exists()
     ), f"rule file {path_rule_file_one} was not created"
-    assert os.path.exists(
-        path_rule_file_two
+    assert (
+        path_rule_file_two.exists()
     ), f"rule file {path_rule_file_two} was not created"
-    shutil.rmtree(output_dir, ignore_errors=True)
