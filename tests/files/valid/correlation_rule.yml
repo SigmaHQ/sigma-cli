@@ -1,0 +1,26 @@
+title: Failed logon
+name: failed_logon
+id: bb450e7c-f1b7-4479-9c9c-e7503d728de1
+status: test
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4625
+    condition: selection
+---
+title: Multiple failed logons for a single user (possible brute force attack)
+status: test
+id: 887a603d-b9b9-4f53-a0e3-d24f15038e1e
+correlation:
+    generate: true
+    type: event_count
+    rules:
+        - failed_logon
+    group-by:
+        - TargetUserName
+        - TargetDomainName
+    timespan: 5m
+    condition:
+        gte: 10
