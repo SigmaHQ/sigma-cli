@@ -84,9 +84,7 @@ def test_plugin_show_nonexisting():
 
 def test_plugin_show_uuid():
     cli = CliRunner()
-    plugin_show = cli.invoke(
-        plugin_group, ["show", "-u", "4af37b53-f1ec-4567-8017-2fb9315397a1"]
-    )
+    plugin_show = cli.invoke(plugin_group, ["show", "-u", "4af37b53-f1ec-4567-8017-2fb9315397a1"])
     assert plugin_show.exit_code == 0
     assert "Splunk" in plugin_show.output
 

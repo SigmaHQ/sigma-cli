@@ -73,9 +73,7 @@ class ChoiceWithPluginHint(click.Choice):
     "-t",
     type=ChoiceWithPluginHint(backends.keys(), "backend"),
     required=True,
-    help="Target query language ("
-    + click.style("sigma list targets", bold=True, fg="green")
-    + ")",
+    help="Target query language (" + click.style("sigma list targets", bold=True, fg="green") + ")",
 )
 @click.option(
     "--pipeline",
@@ -106,7 +104,7 @@ class ChoiceWithPluginHint(click.Choice):
 @click.option(
     "--correlation-method",
     "-c",
-    help="Select method for generation of correlation queries. If not given the default method of the backend is used."
+    help="Select method for generation of correlation queries. If not given the default method of the backend is used.",
 )
 @click.option(
     "--filter",
@@ -218,8 +216,8 @@ def convert(
         for k, v in option.items():
             backend_options.setdefault(k, list()).append(v)
     backend_options = {
-        k: (v[0] if len(v) == 1 else v)  # if there's only one item, return it.
-        for k, v in backend_options.items()
+        k: (v[0] if len(v) == 1 else v)
+        for k, v in backend_options.items()  # if there's only one item, return it.
     }
 
     # Initialize processing pipeline and backend
@@ -235,9 +233,7 @@ def convert(
             + click.style(f"sigma list pipelines {target}", bold=True, fg="green")
             + "\n"
             "List pipeline plugins for installation with: "
-            + click.style(
-                f"sigma plugin list --plugin-type pipeline", bold=True, fg="green"
-            )
+            + click.style(f"sigma plugin list --plugin-type pipeline", bold=True, fg="green")
             + "\n"
             + "Pipelines not listed here are treated as file names."
         )
@@ -275,7 +271,7 @@ def convert(
             + " to list all available formats of the target.",
             param_hint="format",
         )
-    
+
     if correlation_method is not None:
         correlation_methods = backend.correlation_methods
         if correlation_methods is None:
@@ -304,9 +300,9 @@ def convert(
             else:
                 click.echo(result, output)
         elif isinstance(result, list) and all(
-            (  # List of strings Concatenate with newlines in between.
+            (
                 isinstance(item, str) for item in result
-            )
+            )  # List of strings Concatenate with newlines in between.
         ):
             click.echo(bytes("\n\n".join(result), encoding), output)
         elif isinstance(result, list) and all(
@@ -316,9 +312,7 @@ def convert(
         ):
             click.echo(
                 bytes(
-                    "\n".join(
-                        (json.dumps(item, indent=json_indent) for item in result)
-                    ),
+                    "\n".join((json.dumps(item, indent=json_indent) for item in result)),
                     encoding,
                 ),
                 output,
@@ -326,21 +320,22 @@ def convert(
         elif isinstance(result, dict):
             click.echo(bytes(json.dumps(result, indent=json_indent), encoding))
         else:
-            raise click.ClickException(
-                f"Backend returned unexpected format {str(type(result))}"
-            )
+            raise click.ClickException(f"Backend returned unexpected format {str(type(result))}")
     except SigmaError as e:
         if verbose:
-            click.echo('Error while converting')
+            click.echo("Error while converting")
             raise e
         else:
             raise click.ClickException("Error while converting: " + str(e))
     except NotImplementedError as e:
         if verbose:
-            click.echo('Feature required for conversion of Sigma rule is not supported by backend')
+            click.echo("Feature required for conversion of Sigma rule is not supported by backend")
             raise e
         else:
-            raise click.ClickException("Feature required for conversion of Sigma rule is not supported by backend: " + str(e))
+            raise click.ClickException(
+                "Feature required for conversion of Sigma rule is not supported by backend: "
+                + str(e)
+            )
 
     if len(backend.errors) > 0:
         click.echo("\nIgnored errors:", err=True)

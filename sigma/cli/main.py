@@ -13,11 +13,7 @@ try:
             fg="red",
         )
     )
-    click.echo(
-        click.style(
-            "Please uninstall 'sigmatools' from this Python environment!", fg="red"
-        )
-    )
+    click.echo(click.style("Please uninstall 'sigmatools' from this Python environment!", fg="red"))
     click.echo(
         click.style(
             "It is strogly recommended to install Sigma CLI with pipx (https://pypa.github.io/pipx/) to ensure a clean environment.",
@@ -37,9 +33,7 @@ from .analyze import analyze_group
 from .pysigma import check_pysigma_command
 
 
-CONTEXT_SETTINGS={
-    "help_option_names": ['-h', '--help']
-}
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)

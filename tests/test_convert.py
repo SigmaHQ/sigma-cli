@@ -69,15 +69,14 @@ def test_convert_output_list_of_dict_indent():
         convert,
         ["-t", "text_query_test", "-f", "list_of_dict", "-j", "2", "tests/files/valid"],
     )
-    assert len(result_indent.stdout.split("\n")) > len(
-        result_noindent.stdout.split("\n")
-    )
+    assert len(result_indent.stdout.split("\n")) > len(result_noindent.stdout.split("\n"))
 
 
 def test_convert_output_str():
     cli = CliRunner()
     result = cli.invoke(
-        convert, ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"]
+        convert,
+        ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"],
     )
     assert "ParentImage" in result.stdout
 
@@ -113,9 +112,7 @@ def test_convert_output_bytes(tmp_path):
 
 def test_convert_unknown_backend():
     cli = CliRunner()
-    result = cli.invoke(
-        convert, ["-t", "notexisting", "-f", "foo", "tests/files/valid"]
-    )
+    result = cli.invoke(convert, ["-t", "notexisting", "-f", "foo", "tests/files/valid"])
     assert "Invalid value for" in result.stdout
     assert "--plugin-type backend" in result.stdout
 
@@ -186,18 +183,14 @@ def test_yml_pipeline_doesnt_trigger_wrong_pipeline():
 
 def test_backend_option_invalid_format():
     cli = CliRunner()
-    result = cli.invoke(
-        convert, ["-t", "text_query_test", "-O", "invalid", "tests/files/valid"]
-    )
+    result = cli.invoke(convert, ["-t", "text_query_test", "-O", "invalid", "tests/files/valid"])
     assert result.exit_code != 0
     assert "not format key=value" in result.stdout
 
 
 def test_backend_option_invalid_type():
     cli = CliRunner()
-    result = cli.invoke(
-        convert, ["-t", "text_query_test", "-O", 123, "tests/files/valid"]
-    )
+    result = cli.invoke(convert, ["-t", "text_query_test", "-O", 123, "tests/files/valid"])
     assert result.exit_code != 0
     assert "must be a string" in result.stdout
 
@@ -237,19 +230,25 @@ def test_convert_output_backend_option_list():
     )
     assert '[123, "test"]' in result.stdout
 
+
 def test_convert_correlation_method_without_backend_correlation_support(monkeypatch):
-    monkeypatch.setattr(sigma.backends.test.backend.TextQueryTestBackend, "correlation_methods", None)
+    monkeypatch.setattr(
+        sigma.backends.test.backend.TextQueryTestBackend, "correlation_methods", None
+    )
     cli = CliRunner()
     result = cli.invoke(
-        convert, ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"]
+        convert,
+        ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"],
     )
     assert result.exit_code != 0
     assert "Backend 'text_query_test' does not support correlation" in result.stdout
 
+
 def test_convert_invalid_correlation_method():
     cli = CliRunner()
     result = cli.invoke(
-        convert, ["-t", "text_query_test", "-f", "str", "-c", "invalid", "tests/files/valid"]
+        convert,
+        ["-t", "text_query_test", "-f", "str", "-c", "invalid", "tests/files/valid"],
     )
     assert result.exit_code != 0
     assert "Correlation method 'invalid' is not supported" in result.stdout
