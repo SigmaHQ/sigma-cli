@@ -50,7 +50,9 @@ def calculate_attack_scores(
     """Generate MITRE™️ ATT&CK Navigator heatmap according to scoring function."""
     attack_rules = defaultdict(list)
     for rule in rules:
-        if rule.level >= min_sigmalevel and rule.status >= min_sigmastatus:
+        level = rule.level if rule.level else min_sigmalevel
+        status = rule.status if rule.status else min_sigmastatus
+        if level >= min_sigmalevel and status >= min_sigmastatus:
             for tag in rule.tags:
                 if tag.namespace == "attack":
                     technique = tag.name.upper()
