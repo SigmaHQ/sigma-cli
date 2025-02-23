@@ -36,7 +36,7 @@ def analyze_group():
     help="The minimun level of the rule to be include.",
 )
 @click.option(
-    "--min-Status",
+    "--min-status",
     "-T",
     default="UNSUPPORTED",
     help="The minimun status of the rule to be include.",
