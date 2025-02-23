@@ -1,5 +1,5 @@
 from typing import Callable, Dict, Iterable, List
-from sigma.rule import SigmaRule, SigmaLevel
+from sigma.rule import SigmaRule, SigmaLevel, SigmaStatus
 from sigma.collection import SigmaCollection
 from collections import defaultdict
 
@@ -11,9 +11,7 @@ def score_count(rules: Iterable[SigmaRule]) -> int:
 
 def score_max(rules: Iterable[SigmaRule]) -> int:
     """Return maximum rule level value."""
-    return max(
-        map(lambda rule: rule.level.value if rule.level is not None else 0, rules)
-    )
+    return max(map(lambda rule: rule.level.value if rule.level is not None else 0, rules))
 
 
 rule_level_scores = {
@@ -46,14 +44,17 @@ def calculate_attack_scores(
     rules: SigmaCollection,
     score_function: Callable[[Iterable[SigmaRule]], int],
     no_subtechniques: bool = False,
+    min_sigmalevel: SigmaLevel = SigmaLevel.LOW,
+    min_sigmastatus: SigmaStatus = SigmaStatus.UNSUPPORTED,
 ) -> Dict[str, int]:
     """Generate MITRE™️ ATT&CK Navigator heatmap according to scoring function."""
     attack_rules = defaultdict(list)
     for rule in rules:
-        for tag in rule.tags:
-            if tag.namespace == "attack":
-                technique = tag.name.upper()
-                if no_subtechniques:
-                    technique = technique.split(".")[0]
-                attack_rules[technique].append(rule)
+        if rule.level >= min_sigmalevel and rule.status >= min_sigmastatus:
+            for tag in rule.tags:
+                if tag.namespace == "attack":
+                    technique = tag.name.upper()
+                    if no_subtechniques:
+                        technique = technique.split(".")[0]
+                    attack_rules[technique].append(rule)
     return {attack: score_function(rules) for attack, rules in attack_rules.items()}
