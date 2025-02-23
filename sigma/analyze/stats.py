@@ -26,9 +26,7 @@ template_stat_detail = {
 
 def format_row(row: str, column_widths: List) -> str:
     """Format rows for table."""
-    return " | ".join(
-        f"{str(item).ljust(width)}" for item, width in zip(row, column_widths)
-    )
+    return " | ".join(f"{str(item).ljust(width)}" for item, width in zip(row, column_widths))
 
 
 def get_rulelevel_mapping(rule: SigmaRule) -> int:

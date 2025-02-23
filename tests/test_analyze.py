@@ -52,45 +52,35 @@ def test_attack_generate():
 
 def test_attack_generate_max_value():
     cli = CliRunner()
-    result = cli.invoke(
-        analyze_attack, ["--max-score", "2", "max", "-", "tests/files/valid"]
-    )
+    result = cli.invoke(analyze_attack, ["--max-score", "2", "max", "-", "tests/files/valid"])
     assert result.exit_code == 0
     assert '"maxValue": 2' in result.stdout
 
 
 def test_attack_generate_min_value():
     cli = CliRunner()
-    result = cli.invoke(
-        analyze_attack, ["--min-score", "2", "max", "-", "tests/files/valid"]
-    )
+    result = cli.invoke(analyze_attack, ["--min-score", "2", "max", "-", "tests/files/valid"])
     assert result.exit_code == 0
     assert '"minValue": 2' in result.stdout
 
 
 def test_attack_generate_max_color():
     cli = CliRunner()
-    result = cli.invoke(
-        analyze_attack, ["--max-color", "#123456", "max", "-", "tests/files/valid"]
-    )
+    result = cli.invoke(analyze_attack, ["--max-color", "#123456", "max", "-", "tests/files/valid"])
     assert result.exit_code == 0
     assert "#123456" in result.stdout
 
 
 def test_attack_generate_min_color():
     cli = CliRunner()
-    result = cli.invoke(
-        analyze_attack, ["--min-color", "#123456", "max", "-", "tests/files/valid"]
-    )
+    result = cli.invoke(analyze_attack, ["--min-color", "#123456", "max", "-", "tests/files/valid"])
     assert result.exit_code == 0
     assert "#123456" in result.stdout
 
 
 def test_attack_generate_no_subtechniques():
     cli = CliRunner()
-    result = cli.invoke(
-        analyze_attack, ["--no-subtechniques", "max", "-", "tests/files/valid"]
-    )
+    result = cli.invoke(analyze_attack, ["--no-subtechniques", "max", "-", "tests/files/valid"])
     assert result.exit_code == 0
     assert len(result.stdout.split()) > 25
     assert 'T1505"' in result.stdout
@@ -183,10 +173,7 @@ def test_logsource_help():
 def test_logsource_get_rulelevel_mapping(sigma_rules):
     for sigma_rule in sigma_rules:
         if sigma_rule.level:
-            assert (
-                str(get_rulelevel_mapping(sigma_rule)).lower()
-                == sigma_rule.level.name.lower()
-            )
+            assert str(get_rulelevel_mapping(sigma_rule)).lower() == sigma_rule.level.name.lower()
         else:
             assert str(get_rulelevel_mapping(sigma_rule)).lower() == "none"
 
@@ -194,6 +181,5 @@ def test_logsource_get_rulelevel_mapping(sigma_rules):
 def test_logsource_create_logsourcestats(sigma_rules):
     ret = create_logsourcestats(sigma_rules)
 
-    assert 'test' in ret
-    assert ret['test'].get("Overall") == len(sigma_rules)
-
+    assert "test" in ret
+    assert ret["test"].get("Overall") == len(sigma_rules)

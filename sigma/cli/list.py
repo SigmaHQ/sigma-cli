@@ -47,9 +47,7 @@ def list_targets():
         click.echo(table.get_string())
 
 
-@list_group.command(
-    name="formats", help="List formats supported by specified conversion backend."
-)
+@list_group.command(name="formats", help="List formats supported by specified conversion backend.")
 @click.argument(
     "backend",
     type=click.Choice(plugins.backends.keys()),
@@ -66,8 +64,10 @@ def list_formats(backend):
     table.align = "l"
     click.echo(table.get_string())
 
+
 @list_group.command(
-    name="correlation-methods", help="List correlation methods supported by specified backend."
+    name="correlation-methods",
+    help="List correlation methods supported by specified backend.",
 )
 @click.argument(
     "backend",
@@ -119,9 +119,7 @@ def list_pipelines(backend):
                     backends = ", ".join(pipeline.allowed_backends)
                 else:
                     backends = "all"
-                table.add_row(
-                    (name, pipeline.priority, fill(pipeline.name, width=60), backends)
-                )
+                table.add_row((name, pipeline.priority, fill(pipeline.name, width=60), backends))
         table.align = "l"
         click.echo(table.get_string())
 
@@ -159,9 +157,7 @@ def list_modifiers():
             modifier_classes.append(cls)
     modifiers = [
         (
-            " / ".join(
-                modifier for modifier, c in modifier_mapping.items() if c == cls
-            ),
+            " / ".join(modifier for modifier, c in modifier_mapping.items() if c == cls),
             cls,
         )
         for cls in modifier_classes
@@ -175,9 +171,7 @@ def list_modifiers():
     click.echo(table.get_string())
 
 
-@list_group.command(
-    name="transformations", help="List processing pipeline transformations."
-)
+@list_group.command(name="transformations", help="List processing pipeline transformations.")
 def list_transformations():
     table = PrettyTable(
         field_names=(

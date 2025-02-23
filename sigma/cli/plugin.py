@@ -57,7 +57,14 @@ def list_plugins(plugin_type: str, plugin_state: str, compatible: bool, search: 
     norm_search = search.lower()
 
     table = PrettyTable()
-    table.field_names = ("Identifier", "Type", "State", "Description", "Compatible?", "Capabilities")
+    table.field_names = (
+        "Identifier",
+        "Type",
+        "State",
+        "Description",
+        "Compatible?",
+        "Capabilities",
+    )
     table.add_rows(
         [
             (
@@ -68,11 +75,8 @@ def list_plugins(plugin_type: str, plugin_state: str, compatible: bool, search: 
                 compatibility_state[plugin.is_compatible()],
                 len(plugin.capabilities),
             )
-            for plugin in plugins.get_plugins(
-                compatible_only=compatible, **get_plugins_args
-            )
-            if norm_search in plugin.id.lower()
-            or norm_search in plugin.description.lower()
+            for plugin in plugins.get_plugins(compatible_only=compatible, **get_plugins_args)
+            if norm_search in plugin.id.lower() or norm_search in plugin.description.lower()
         ]
     )
     table.align = "l"
@@ -108,7 +112,10 @@ def show_plugin(uuid: bool, plugin_identifier: str):
             ("Description", fill(plugin.description, width=60)),
             ("Required pySigma version", plugin.pysigma_version),
             ("Compatible?", plugin.is_compatible()),
-            ("Capabilities", "\n".join(str(capability) for capability in plugin.capabilities)),
+            (
+                "Capabilities",
+                "\n".join(str(capability) for capability in plugin.capabilities),
+            ),
             ("Project URL", plugin.project_url),
             ("Report Issue URL", plugin.report_issue_url),
         ]
@@ -133,7 +140,10 @@ def show_plugin(uuid: bool, plugin_identifier: str):
 )
 @click.argument("plugin-identifiers", nargs=-1)
 def install_plugin(
-    uuid: bool, compatibility_check: bool, check_pysigma: bool, plugin_identifiers: List[str]
+    uuid: bool,
+    compatibility_check: bool,
+    check_pysigma: bool,
+    plugin_identifiers: List[str],
 ):
     for plugin_identifier in plugin_identifiers:
         plugin = get_plugin(uuid, plugin_identifier)
@@ -142,11 +152,16 @@ def install_plugin(
             click.echo(f"Successfully installed plugin '{plugin_identifier}'")
         else:
             raise click.exceptions.ClickException(
-                "Plugin not compatible with installed pySigma version! " + click.style("Use '--force-install' or its shortcut '-f' to install anyway.", fg="green")
+                "Plugin not compatible with installed pySigma version! "
+                + click.style(
+                    "Use '--force-install' or its shortcut '-f' to install anyway.",
+                    fg="green",
+                )
             )
-    
+
     if check_pysigma:
         check_pysigma_command()
+
 
 @plugin_group.command(name="upgrade", help="Upgrade installed plugin.")
 @click.option(
@@ -164,9 +179,7 @@ def upgrade_plugin(compatibility_check: bool):
                 plugin.upgrade()
                 click.echo(f"Successfully upgrade plugin '{plugin.id}'")
             else:
-                click.echo(
-                    f"Plugin '{plugin.id}' not compatible with installed pySigma version"
-                )
+                click.echo(f"Plugin '{plugin.id}' not compatible with installed pySigma version")
 
 
 @plugin_group.command(name="uninstall", help="Uninstall plugin by identifier or UUID.")
@@ -191,6 +204,4 @@ def report_issue(uuid: bool, plugin_identifier: str):
     if plugin.report_issue_url:
         click.launch(plugin.report_issue_url)
     else:
-        raise click.exceptions.ClickException(
-            "Plugin does not have an issue reporting URL!"
-        )
+        raise click.exceptions.ClickException("Plugin does not have an issue reporting URL!")

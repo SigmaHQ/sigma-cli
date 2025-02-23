@@ -62,9 +62,7 @@ severity_color = {"low": "green", "medium": "yellow", "high": "red"}
     required=True,
     type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
 )
-def check(
-    input, validation_config, file_pattern, fail_on_error, fail_on_issues, exclude
-):
+def check(input, validation_config, file_pattern, fail_on_error, fail_on_issues, exclude):
     """Check Sigma rules for validity and best practices (not yet implemented)."""
     if (
         validation_config is None
@@ -73,21 +71,15 @@ def check(
         exclude_invalid = [
             excluded for excluded in exclude_lower if excluded not in validators.keys()
         ]
-        exclude_valid = [
-            excluded for excluded in exclude_lower if excluded not in exclude_invalid
-        ]
+        exclude_valid = [excluded for excluded in exclude_lower if excluded not in exclude_invalid]
 
         if len(exclude_invalid) > 0:
-            click.echo(
-                f"Invalid validators name : {exclude_invalid} use 'sigma list validators'"
-            )
+            click.echo(f"Invalid validators name : {exclude_invalid} use 'sigma list validators'")
         if len(exclude_valid) > 0:
             click.echo(f"Ignoring these validators : {exclude_valid}'")
 
         validators_filtered = [
-            validator
-            for name, validator in validators.items()
-            if name.lower() not in exclude_valid
+            validator for name, validator in validators.items() if name.lower() not in exclude_valid
         ]
         rule_validator = SigmaValidator(validators_filtered)
     else:
@@ -121,9 +113,7 @@ def check(
                     check_rules.append(rule)
                 except SigmaConditionError as e:  # Error in condition
                     error = str(e)
-                    click.echo(
-                        f"Condition error in { str(condition.source) }:{ error }"
-                    )
+                    click.echo(f"Condition error in { str(condition.source) }:{ error }")
                     cond_errors.update((error,))
             else:
                 check_rules.append(rule)
@@ -132,9 +122,7 @@ def check(
         rule_error_count = sum(rule_errors.values())
         # rule_error_count = rule_errors.total()
 
-        with click.progressbar(
-            check_rules, label="Checking Sigma rules", file=stderr
-        ) as rules:
+        with click.progressbar(check_rules, label="Checking Sigma rules", file=stderr) as rules:
             issues = rule_validator.validate_rules(rules)
 
         issue_count = len(issues)
@@ -145,9 +133,11 @@ def check(
                 # Need to split SigmaValidationIssue __str__
                 rules = ", ".join(
                     [
-                        str(rule.source)
-                        if rule.source is not None
-                        else str(rule.id) or rule.title
+                        (
+                            str(rule.source)
+                            if rule.source is not None
+                            else str(rule.id) or rule.title
+                        )
                         for rule in issue.rules
                     ]
                 )
