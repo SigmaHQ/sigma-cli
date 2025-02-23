@@ -44,7 +44,7 @@ def calculate_attack_scores(
     rules: SigmaCollection,
     score_function: Callable[[Iterable[SigmaRule]], int],
     no_subtechniques: bool = False,
-    min_sigmalevel: SigmaLevel = SigmaLevel.LOW,
+    min_sigmalevel: SigmaLevel = SigmaLevel.INFORMATIONAL,
     min_sigmastatus: SigmaStatus = SigmaStatus.UNSUPPORTED,
 ) -> Dict[str, int]:
     """Generate MITRE™️ ATT&CK Navigator heatmap according to scoring function."""
