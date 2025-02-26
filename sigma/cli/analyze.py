@@ -9,6 +9,7 @@ from sigma.data.mitre_attack import (
     mitre_attack_version,
 )
 from sigma.analyze.stats import create_logsourcestats, format_row
+from sigma.rule import SigmaLevel, SigmaStatus
 
 
 @click.group(name="analyze", help="Analyze Sigma rule sets")
@@ -29,6 +30,18 @@ def analyze_group():
     default="*.yml",
     show_default=True,
     help="Pattern for file names to be included in recursion into directories.",
+)
+@click.option(
+    "--min-level",
+    "-L",
+    default="INFORMATIONAL",
+    help="The minimun level of the rule to be include.",
+)
+@click.option(
+    "--min-status",
+    "-T",
+    default="UNSUPPORTED",
+    help="The minimun status of the rule to be include.",
 )
 @click.option(
     "--subtechniques/--no-subtechniques",
@@ -80,6 +93,8 @@ def analyze_group():
 )
 def analyze_attack(
     file_pattern,
+    min_level,
+    min_status,
     subtechniques,
     max_color,
     min_color,
@@ -89,9 +104,17 @@ def analyze_attack(
     output,
     input,
 ):
+    try:
+        min_sigmalevel = SigmaLevel[min_level.upper()]
+    except:
+        min_sigmalevel = SigmaLevel.INFORMATIONAL
+    try:
+        min_sigmastatus = SigmaStatus[min_status.upper()]
+    except:
+        min_sigmastatus = SigmaStatus.UNSUPPORTED
     rules = load_rules(input, file_pattern)
     score_function = score_functions[function][0]
-    scores = calculate_attack_scores(rules, score_function, not subtechniques)
+    scores = calculate_attack_scores(rules, score_function, not subtechniques,min_sigmalevel=min_sigmalevel,min_sigmastatus=min_sigmastatus,)
     layer_techniques = [
         {
             "techniqueID": technique,
