@@ -108,7 +108,7 @@ def analyze_attack(
         for tactic in mitre_attack_techniques_tactics_mapping.get(technique, [])
     ]
     layer = {
-        "name": "layer",
+        "name": "Sigma Analytics Coverage",
         "versions": {
             "attack": mitre_attack_version,
             "navigator": "4.8.1",
