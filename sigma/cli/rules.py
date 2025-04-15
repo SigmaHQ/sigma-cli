@@ -35,3 +35,15 @@ def load_rules(input, file_pattern):
     rule_collection.resolve_rule_references()
 
     return rule_collection
+
+def check_rule_errors(sigma_collection):
+    """
+    Check if the SigmaCollection contains errors and handle them.
+    """
+    if sigma_collection.errors:
+        click.echo("Errors found in Sigma rules:", err=True)
+        for error in sigma_collection.errors:
+            click.echo(f"* {error}", err=True)
+        raise click.ClickException(
+            "Errors found in Sigma rules. Please check the output above."
+        )

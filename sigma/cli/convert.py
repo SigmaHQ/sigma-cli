@@ -5,7 +5,7 @@ from typing import Sequence
 
 import click
 
-from sigma.cli.rules import load_rules
+from sigma.cli.rules import load_rules, check_rule_errors
 from sigma.conversion.base import Backend
 from sigma.exceptions import (
     SigmaError,
@@ -293,6 +293,7 @@ def convert(
 
     try:
         rule_collection = load_rules(input + filter, file_pattern)
+        check_rule_errors(rule_collection)
         result = backend.convert(rule_collection, format, correlation_method)
         if isinstance(result, str):  # String result
             click.echo(bytes(result, encoding), output)

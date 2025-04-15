@@ -96,6 +96,12 @@ def test_attack_generate_no_subtechniques():
     assert 'T1505"' in result.stdout
     assert "persistence" in result.stdout
 
+def test_attack_invalid_rule():
+    cli = CliRunner()
+    result = cli.invoke(analyze_attack, ["max", "-", "tests/files/sigma_rule_without_condition.yml"])
+    assert result.exit_code != 0
+    assert "at least one condition" in result.stdout
+
 
 @pytest.fixture
 def sigma_rules():
@@ -197,3 +203,8 @@ def test_logsource_create_logsourcestats(sigma_rules):
     assert 'test' in ret
     assert ret['test'].get("Overall") == len(sigma_rules)
 
+def test_logsource_invalid_rule():
+    cli = CliRunner()
+    result = cli.invoke(analyze_logsource, ["-", "tests/files/sigma_rule_without_condition.yml"])
+    assert result.exit_code != 0
+    assert "at least one condition" in result.stdout

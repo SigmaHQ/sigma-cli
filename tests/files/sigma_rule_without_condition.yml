@@ -1,0 +1,8 @@
+title: Rule without condition
+id: cb83ea64-fc69-479e-9c99-aaaaaaaaaaaa
+logsource:
+  category: test
+detection:
+  selection:
+    field: value
+condition: selection

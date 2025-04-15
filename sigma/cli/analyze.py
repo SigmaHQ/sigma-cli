@@ -2,7 +2,7 @@ import json
 import pathlib
 import click
 
-from sigma.cli.rules import load_rules
+from sigma.cli.rules import check_rule_errors, load_rules
 from sigma.analyze.attack import score_functions, calculate_attack_scores
 from sigma.data.mitre_attack import (
     mitre_attack_techniques_tactics_mapping,
@@ -113,6 +113,7 @@ def analyze_attack(
     except:
         min_sigmastatus = SigmaStatus.UNSUPPORTED
     rules = load_rules(input, file_pattern)
+    check_rule_errors(rules)
     score_function = score_functions[function][0]
     scores = calculate_attack_scores(rules, score_function, not subtechniques,min_sigmalevel=min_sigmalevel,min_sigmastatus=min_sigmastatus,)
     layer_techniques = [
@@ -184,6 +185,7 @@ def analyze_logsource(
     input,
 ):
     rules = load_rules(input, file_pattern)
+    check_rule_errors(rules)
     stats = create_logsourcestats(rules)
 
     # Extract column header

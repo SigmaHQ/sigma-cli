@@ -29,6 +29,22 @@ def test_convert_output_list_of_str():
         in result.stdout
     )
 
+def test_convert_invalid_rule():
+    cli = CliRunner()
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-p",
+            "another_test",
+            "--disable-pipeline-check",
+            "tests/files/sigma_rule_without_condition.yml",
+        ],
+    )
+    assert result.exit_code > 0
+    assert "at least one condition" in result.stdout
+
 
 def test_convert_stdin():
     cli = CliRunner()
