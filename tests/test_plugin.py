@@ -100,7 +100,7 @@ def test_plugin_install_notexisting():
 
 def test_plugin_install():
     cli = CliRunner()
-    result = cli.invoke(install_plugin, ["splunk"])
+    result = cli.invoke(install_plugin, ["-f", "splunk"])
     assert result.exit_code == 0
     assert "Successfully installed" in result.output
 

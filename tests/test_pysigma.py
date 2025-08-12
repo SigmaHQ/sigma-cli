@@ -1,7 +1,13 @@
+import importlib
+import re
 from sigma.cli.pysigma import check_pysigma_command, check_pysigma_version
 from click.testing import CliRunner
 import pytest
 
+@pytest.mark.xfail(
+    condition=re.match(r"^\d+\.\d+\.\d+\w+\d+$", importlib.metadata.version("pysigma")),
+    reason="pysigma version is release candidate or other special version.",
+)
 def test_check_pysigma_version():
     assert check_pysigma_version() == True
 

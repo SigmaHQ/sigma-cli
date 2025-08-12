@@ -10,6 +10,7 @@ from sigma.rule import (
     SigmaLevel,
     SigmaRuleTag,
 )
+from sigma.types import SigmaString
 from sigma.analyze.attack import (
     calculate_attack_scores,
     score_count,
@@ -107,7 +108,7 @@ def test_attack_invalid_rule():
 def sigma_rules():
     logsource = SigmaLogSource(category="test")
     detections = SigmaDetections(
-        {"test": SigmaDetection([SigmaDetectionItem("field", [], "value")])}, ["test"]
+        {"test": SigmaDetection([SigmaDetectionItem("field", [], [SigmaString("value")])])}, ["test"]
     )
     return [
         SigmaRule(
