@@ -24,6 +24,10 @@ def test_check_pysigma_version_incompatible(monkeypatch, pysigma_expected_versio
     monkeypatch.setattr('importlib.metadata.version', lambda x: pysigma_installed_version)
     assert check_pysigma_version() == expected_result
 
+@pytest.mark.xfail(
+    condition=re.match(r"^\d+\.\d+\.\d+\w+\d+$", importlib.metadata.version("pysigma")),
+    reason="pysigma version is release candidate or other special version.",
+)
 def test_check_pysigma():
     cli = CliRunner()
     result = cli.invoke(check_pysigma_command)
