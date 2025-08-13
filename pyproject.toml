@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sigma-cli"
-version = "1.0.6"
+version = "1.1.0rc1"
 description = "Sigma Command Line Interface (conversion, check etc.) based on pySigma"
 authors = ["Thomas Patzke <thomas@patzke.org>"]
 license = "LGPL-2.1-or-later"
@@ -23,7 +23,7 @@ packages = [
 python = "^3.9"
 click = "^8.0.3"
 prettytable = "^3.1.1"
-pysigma = "^0.11.19"
+pysigma = "^1.0.0rc1"
 colorama = "^0.4.6"
 
 [tool.poetry.dev-dependencies]
