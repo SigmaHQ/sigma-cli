@@ -346,4 +346,4 @@ def convert(
     if len(backend.errors) > 0:
         click.echo("\nIgnored errors:", err=True)
         for rule, error in backend.errors:
-            raise click.ClickException(f"{str(rule.source)}: {str(error)}")
+            click.echo(f"{str(rule.source)}: {str(error)}", err=True)
