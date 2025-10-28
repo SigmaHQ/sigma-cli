@@ -1,6 +1,6 @@
 import pytest
 from click.testing import CliRunner
-from sigma.cli.analyze import analyze_group, analyze_attack, analyze_logsource
+from sigma.cli.analyze import analyze_group, analyze_attack, analyze_logsource, analyze_fields
 from sigma.rule import (
     SigmaRule,
     SigmaLogSource,
@@ -207,5 +207,41 @@ def test_logsource_create_logsourcestats(sigma_rules):
 def test_logsource_invalid_rule():
     cli = CliRunner()
     result = cli.invoke(analyze_logsource, ["-", "tests/files/sigma_rule_without_condition.yml"])
+    assert result.exit_code != 0
+    assert "at least one condition" in result.stdout
+
+
+def test_fields_help():
+    cli = CliRunner()
+    result = cli.invoke(analyze_fields, ["--help"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 8
+
+
+def test_fields_extract():
+    cli = CliRunner()
+    result = cli.invoke(analyze_fields, ["-t", "text_query_test", "-", "tests/files/valid"])
+    assert result.exit_code == 0
+    # Should have extracted at least some fields
+    assert len(result.stdout.split()) > 0
+
+
+def test_fields_extract_correlation_rule():
+    cli = CliRunner()
+    result = cli.invoke(analyze_fields, ["-t", "text_query_test", "-", "tests/files/sigma_correlation_rules.yml"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 0
+
+
+def test_fields_extract_with_pipelines():
+    cli = CliRunner()
+    result = cli.invoke(analyze_fields, ["-t", "text_query_test", "-p", "tests/files/custom_pipeline.yml", "-p", "dummy_test", "-", "tests/files/valid"])
+    assert result.exit_code == 0
+    assert len(result.stdout.split()) > 0
+
+
+def test_fields_invalid_rule():
+    cli = CliRunner()
+    result = cli.invoke(analyze_fields, ["-t", "text_query_test", "-", "tests/files/sigma_rule_without_condition.yml"])
     assert result.exit_code != 0
     assert "at least one condition" in result.stdout

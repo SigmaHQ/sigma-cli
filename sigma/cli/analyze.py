@@ -1,15 +1,20 @@
 import json
 import pathlib
 import click
+from sigma.processing.resolver import SigmaPipelineNotFoundError
 
+from sigma.cli.convert import pipeline_resolver
 from sigma.cli.rules import check_rule_errors, load_rules
 from sigma.analyze.attack import score_functions, calculate_attack_scores
+from sigma.analyze.fields import extract_fields_from_collection
 from sigma.data.mitre_attack import (
     mitre_attack_techniques_tactics_mapping,
     mitre_attack_version,
 )
 from sigma.analyze.stats import create_logsourcestats, format_row
 from sigma.rule import SigmaLevel, SigmaStatus
+from sigma.plugins import InstalledSigmaPlugins
+from sigma.conversion.base import Backend
 
 
 @click.group(name="analyze", help="Analyze Sigma rule sets")
@@ -207,3 +212,102 @@ def analyze_logsource(
     print("-+-".join("-" * width for width in column_widths), file=output)
     for row in rows:
         print(format_row(row, column_widths), file=output)
+
+
+@analyze_group.command(
+    name="fields",
+    help="Extract field names from Sigma rules for a given target backend and processing pipeline(s).",
+)
+@click.option(
+    "--file-pattern",
+    "-P",
+    default="*.yml",
+    show_default=True,
+    help="Pattern for file names to be included in recursion into directories.",
+)
+@click.option(
+    "--target",
+    "-t",
+    type=str,
+    required=True,
+    help="Target backend to use for field name escaping and quoting.",
+)
+@click.option(
+    "--pipeline",
+    "-p",
+    multiple=True,
+    help="Specify processing pipelines as identifiers ("
+    + click.style("sigma list pipelines", bold=True, fg="green")
+    + ") or YAML files or directories",
+)
+@click.option(
+    "--pipeline-check/--disable-pipeline-check",
+    default=True,
+    help="Verify if a pipeline is used that is intended for another backend.",
+)
+@click.argument(
+    "input",
+    nargs=-1,
+    required=True,
+    type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
+)
+def analyze_fields(file_pattern, target, pipeline, pipeline_check, input):
+    """Extract field names from Sigma rule sets.
+    
+    This command extracts and outputs all unique field names present in the given
+    Sigma rule collection, formatted for the specified target backend.
+    """
+    # Load plugins and get available backends
+    plugins = InstalledSigmaPlugins.autodiscover()
+    backends = plugins.backends
+    
+    if target not in backends:
+        available_targets = ", ".join(sorted(backends.keys()))
+        raise click.ClickException(
+            f"Unknown target '{target}'. Available targets are: {available_targets}"
+        )
+    
+    # Load rules
+    rules = load_rules(input, file_pattern)
+    check_rule_errors(rules)
+    
+    # Resolve pipelines
+    try:
+        processing_pipeline = pipeline_resolver.resolve(
+            pipeline, target if pipeline_check else None
+        )
+    except SigmaPipelineNotFoundError as e:
+        raise click.UsageError(
+            f"The pipeline '{e.spec}' was not found.\n"
+            + "List all installed processing pipelines with: "
+            + click.style(f"sigma list pipelines {target}", bold=True, fg="green")
+            + "\n"
+            "List pipeline plugins for installation with: "
+            + click.style(
+                f"sigma plugin list --plugin-type pipeline", bold=True, fg="green"
+            )
+            + "\n"
+            + "Pipelines not listed here are treated as file names."
+        )
+    
+    # Initialize backend
+    backend_class = backends[target]
+    try:
+        backend: Backend = backend_class(
+            processing_pipeline=processing_pipeline,
+            collect_errors=True,
+        )
+    except Exception as e:
+        raise click.ClickException(f"Failed to initialize backend '{target}': {str(e)}")
+    
+    # Extract fields
+    all_fields, errors = extract_fields_from_collection(rules, backend)
+    
+    # Handle errors
+    if errors:
+        click.echo("Warnings during field extraction:", err=True)
+        for error in errors:
+            click.echo(f"* {error}", err=True)
+    
+    # Output fields sorted
+    click.echo("\n".join(sorted(all_fields)))
