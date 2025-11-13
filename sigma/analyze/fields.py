@@ -1,4 +1,6 @@
 """Extract field names from Sigma rules."""
+from __future__ import annotations
+
 from operator import add
 from typing import List, Set, Tuple
 from sigma.rule import SigmaRule, SigmaDetection, SigmaDetectionItem
