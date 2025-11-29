@@ -20,15 +20,15 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-click = "^8.0.3"
-prettytable = "^3.1.1"
-pysigma = "^1.0.0rc1"
+python = "^3.10"
+click = "^8.3.1"
+prettytable = "^3.17.0"
+pysigma = "^1.0"
 colorama = "^0.4.6"
 
-[tool.poetry.dev-dependencies]
-pytest = "^8.3.4"
-pytest-cov = "^6.0.0"
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.1"
+pytest-cov = "^7.0.0"
 defusedxml = "^0.7.1"
 
 [tool.poetry.scripts]

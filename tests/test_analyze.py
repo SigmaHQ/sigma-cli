@@ -101,7 +101,7 @@ def test_attack_invalid_rule():
     cli = CliRunner()
     result = cli.invoke(analyze_attack, ["max", "-", "tests/files/sigma_rule_without_condition.yml"])
     assert result.exit_code != 0
-    assert "at least one condition" in result.stdout
+    assert "at least one condition" in result.stderr
 
 
 @pytest.fixture
