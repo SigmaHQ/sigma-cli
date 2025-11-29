@@ -43,7 +43,7 @@ def test_convert_invalid_rule():
         ],
     )
     assert result.exit_code > 0
-    assert "at least one condition" in result.stdout
+    assert "at least one condition" in result.stderr
 
 
 def test_convert_stdin():
@@ -132,8 +132,8 @@ def test_convert_unknown_backend():
     result = cli.invoke(
         convert, ["-t", "notexisting", "-f", "foo", "tests/files/valid"]
     )
-    assert "Invalid value for" in result.stdout
-    assert "--plugin-type backend" in result.stdout
+    assert "Invalid value for" in result.stderr
+    assert "--plugin-type backend" in result.stderr
 
 
 def test_convert_unknown_format():
@@ -141,8 +141,8 @@ def test_convert_unknown_format():
     result = cli.invoke(
         convert, ["-t", "text_query_test", "-f", "nonexisting", "tests/files/valid"]
     )
-    assert "Invalid value for format" in result.stdout
-    assert "sigma list formats" in result.stdout
+    assert "Invalid value for format" in result.stderr
+    assert "sigma list formats" in result.stderr
 
 
 def test_convert_unknown_pipeline():
@@ -150,20 +150,20 @@ def test_convert_unknown_pipeline():
     result = cli.invoke(
         convert, ["-t", "text_query_test", "-p", "nonexisting", "tests/files/valid"]
     )
-    assert "'nonexisting' was not found" in result.stdout
-    assert "--plugin-type pipeline" in result.stdout
+    assert "'nonexisting' was not found" in result.stderr
+    assert "--plugin-type pipeline" in result.stderr
 
 
 def test_convert_missing_input():
     cli = CliRunner()
     result = cli.invoke(convert, ["-t", "text_query_test"])
-    assert "Missing argument" in result.stdout
+    assert "Missing argument" in result.stderr
 
 
 def test_convert_missing_pipeline():
     cli = CliRunner()
     result = cli.invoke(convert, ["-t", "mandatory_pipeline_test", "tests/files/valid"])
-    assert result.exit_code > 0 and "pipeline required" in result.stdout
+    assert result.exit_code > 0 and "pipeline required" in result.stderr
 
 
 def test_convert_missing_pipeline_ignore():
@@ -180,7 +180,7 @@ def test_convert_wrong_pipeline():
     result = cli.invoke(
         convert, ["-t", "text_query_test", "-p", "another_test", "tests/files/valid"]
     )
-    assert result.exit_code > 0 and "'another_test' is not intended" in result.stdout
+    assert result.exit_code > 0 and "'another_test' is not intended" in result.stderr
 
 
 def test_yml_pipeline_doesnt_trigger_wrong_pipeline():
@@ -206,7 +206,7 @@ def test_backend_option_invalid_format():
         convert, ["-t", "text_query_test", "-O", "invalid", "tests/files/valid"]
     )
     assert result.exit_code != 0
-    assert "not format key=value" in result.stdout
+    assert "not format key=value" in result.stderr
 
 
 def test_backend_option_invalid_type():
@@ -215,7 +215,7 @@ def test_backend_option_invalid_type():
         convert, ["-t", "text_query_test", "-O", 123, "tests/files/valid"]
     )
     assert result.exit_code != 0
-    assert "must be a string" in result.stdout
+    assert "must be a string" in result.stderr
 
 
 def test_convert_output_backend_option():
@@ -253,6 +253,7 @@ def test_convert_output_backend_option_list():
     )
     assert '[123, "test"]' in result.stdout
 
+
 def test_convert_correlation_method_without_backend_correlation_support(monkeypatch):
     monkeypatch.setattr(sigma.backends.test.backend.TextQueryTestBackend, "correlation_methods", None)
     cli = CliRunner()
@@ -260,7 +261,8 @@ def test_convert_correlation_method_without_backend_correlation_support(monkeypa
         convert, ["-t", "text_query_test", "-f", "str", "-c", "test", "tests/files/valid"]
     )
     assert result.exit_code != 0
-    assert "Backend 'text_query_test' does not support correlation" in result.stdout
+    assert "Backend 'text_query_test' does not support correlation" in result.stderr
+
 
 def test_convert_invalid_correlation_method():
     cli = CliRunner()
@@ -268,4 +270,4 @@ def test_convert_invalid_correlation_method():
         convert, ["-t", "text_query_test", "-f", "str", "-c", "invalid", "tests/files/valid"]
     )
     assert result.exit_code != 0
-    assert "Correlation method 'invalid' is not supported" in result.stdout
+    assert "Correlation method 'invalid' is not supported" in result.stderr

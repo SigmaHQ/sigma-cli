@@ -208,7 +208,7 @@ def test_logsource_invalid_rule():
     cli = CliRunner()
     result = cli.invoke(analyze_logsource, ["-", "tests/files/sigma_rule_without_condition.yml"])
     assert result.exit_code != 0
-    assert "at least one condition" in result.stdout
+    assert "at least one condition" in result.stderr
 
 
 def test_fields_help():
@@ -244,4 +244,4 @@ def test_fields_invalid_rule():
     cli = CliRunner()
     result = cli.invoke(analyze_fields, ["-t", "text_query_test", "-", "tests/files/sigma_rule_without_condition.yml"])
     assert result.exit_code != 0
-    assert "at least one condition" in result.stdout
+    assert "at least one condition" in result.stderr

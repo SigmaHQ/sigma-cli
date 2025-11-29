@@ -4,9 +4,7 @@ from sigma.cli.convert import convert
 
 
 def test_filter_basic_operation():
-    cli = CliRunner(
-        mix_stderr=True
-    )
+    cli = CliRunner()
     result = cli.invoke(
         convert, ["-t", "text_query_test", "--filter", "tests/files/sigma_filter.yml", "tests/files/valid/sigma_rule.yml"],
     )
@@ -35,9 +33,7 @@ def test_filter_basic_from_stdin():
 
 
 def test_filter_with_pipeline_mapping():
-    cli = CliRunner(
-        mix_stderr=True
-    )
+    cli = CliRunner()
     result = cli.invoke(
         convert, [
             "-t",
