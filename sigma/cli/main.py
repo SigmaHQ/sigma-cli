@@ -34,7 +34,7 @@ from .convert import convert
 from .check import check
 from .plugin import plugin_group
 from .analyze import analyze_group
-from .pysigma import check_pysigma_command
+from .pysigma import pysigma_group
 
 
 CONTEXT_SETTINGS={
@@ -73,10 +73,10 @@ def version():
 def main():
     cli.add_command(analyze_group)
     cli.add_command(plugin_group)
+    cli.add_command(pysigma_group)
     cli.add_command(list_group)
     cli.add_command(convert)
     cli.add_command(check)
-    cli.add_command(check_pysigma_command)
     cli.add_command(version)
     cli()
 

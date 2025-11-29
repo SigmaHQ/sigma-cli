@@ -1,6 +1,6 @@
 import importlib
 import re
-from sigma.cli.pysigma import check_pysigma_command, check_pysigma_version
+from sigma.cli.pysigma import pysigma_group, check_pysigma_version
 from click.testing import CliRunner
 import pytest
 
@@ -30,13 +30,13 @@ def test_check_pysigma_version_incompatible(monkeypatch, pysigma_expected_versio
 )
 def test_check_pysigma():
     cli = CliRunner()
-    result = cli.invoke(check_pysigma_command)
+    result = cli.invoke(pysigma_group, ["check-version"])
     assert "pySigma version is compatible with sigma-cli" in result.output
 
 @pytest.mark.skip(reason="This test is not working")
 def test_check_pysigma_incompatible(monkeypatch):
     monkeypatch.setattr('importlib.metadata.version', lambda x: "0.0.1")
     cli = CliRunner()
-    result = cli.invoke(check_pysigma_command, input="y\n")
+    result = cli.invoke(pysigma_group, ["check-version"], input="y\n")
     assert "pySigma version is not compatible" in result.output
     assert "pySigma successfully reinstalled" in result.output

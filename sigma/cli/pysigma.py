@@ -18,8 +18,15 @@ def check_pysigma_version():
     version_specifier = SpecifierSet(requires_pysgima.split(" ")[1][1:-1])
     return importlib.metadata.version("pysigma") in version_specifier
 
-@click.command(
-    name="check-pysigma",
+@click.group(
+    name="pysigma",
+    help="pySigma library management commands."
+)
+def pysigma_group():
+    pass
+
+@pysigma_group.command(
+    name="check-version",
     help="Check if the installed version of pysigma is compatible with the version required by sigma-cli."
 )
 @click.option(
@@ -28,7 +35,7 @@ def check_pysigma_version():
     default=False,
     help="Suppress output if check passes.",
 )
-def check_pysigma_command(quiet):
+def check_version_command(quiet):
     check_pysigma(quiet)
 
 def check_pysigma(quiet=False):
@@ -61,4 +68,4 @@ def check_pysigma(quiet=False):
             )
             click.echo("pySigma successfully reinstalled")
         else:
-            click.echo("Incompatible pySigma version was keeped. You can rerun the check with: " + click.style("sigma check-pysigma", fg="green"))
+            click.echo("Incompatible pySigma version was keeped. You can rerun the check with: " + click.style("sigma pysigma check-version", fg="green"))
