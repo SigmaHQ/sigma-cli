@@ -245,3 +245,11 @@ def test_fields_invalid_rule():
     result = cli.invoke(analyze_fields, ["-t", "text_query_test", "-", "tests/files/sigma_rule_without_condition.yml"])
     assert result.exit_code != 0
     assert "at least one condition" in result.stderr
+
+def test_fields_grouped_extract():
+    cli = CliRunner()
+    result = cli.invoke(analyze_fields, ["-t", "text_query_test", "--group", "-", "tests/files/valid"])
+    assert result.exit_code == 0
+    # Should have extracted at least some fields
+    assert len(result.stdout.split()) > 0
+    assert "+----------" in result.stdout  # Check for table format
