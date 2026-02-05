@@ -1,6 +1,7 @@
 import json
 import pathlib
 import click
+from prettytable import PrettyTable
 from sigma.processing.resolver import SigmaPipelineNotFoundError
 
 from sigma.cli.convert import pipeline_resolver
@@ -245,13 +246,18 @@ def analyze_logsource(
     default=True,
     help="Verify if a pipeline is used that is intended for another backend.",
 )
+@click.option(
+    "--group/--no-group",
+    default=False,
+    help="Group fields by logsource.",
+)
 @click.argument(
     "input",
     nargs=-1,
     required=True,
     type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
 )
-def analyze_fields(file_pattern, target, pipeline, pipeline_check, input):
+def analyze_fields(file_pattern, target, pipeline, pipeline_check, group, input):
     """Extract field names from Sigma rule sets.
     
     This command extracts and outputs all unique field names present in the given
@@ -301,13 +307,22 @@ def analyze_fields(file_pattern, target, pipeline, pipeline_check, input):
         raise click.ClickException(f"Failed to initialize backend '{target}': {str(e)}")
     
     # Extract fields
-    all_fields, errors = extract_fields_from_collection(rules, backend)
+    all_fields, errors = extract_fields_from_collection(rules, backend, group)
     
     # Handle errors
     if errors:
         click.echo("Warnings during field extraction:", err=True)
         for error in errors:
             click.echo(f"* {error}", err=True)
-    
-    # Output fields sorted
-    click.echo("\n".join(sorted(all_fields)))
+
+    if group:
+        table = PrettyTable()
+        table.field_names = ["Logsource", "Fields"]
+        table.align["Logsource"] = "r"
+        table.align["Fields"] = "l"
+        for logsource, fields in sorted(all_fields.items()):
+            table.add_row([logsource, "\n".join(sorted(fields))])
+        click.echo(table)
+    else:
+        # Output fields sorted
+        click.echo("\n".join(sorted(all_fields)))

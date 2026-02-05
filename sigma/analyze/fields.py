@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from operator import add
-from typing import List, Set, Tuple
+from typing import List, Set, Tuple, Dict, Union
 from sigma.rule import SigmaRule, SigmaDetection, SigmaDetectionItem
 from sigma.collection import SigmaCollection
 from sigma.correlations import SigmaCorrelationRule
@@ -145,19 +145,22 @@ def _get_fields_from_detection_items(
 def extract_fields_from_collection(
     collection: SigmaCollection,
     backend,
+    group = False,
     collect_errors: bool = True,
-) -> Tuple[Set[str], List[SigmaError]]:
+) -> Tuple[Union[Set[str], Dict[str, Set[str]]], List[SigmaError]]:
     """Extract all unique field names from a Sigma collection.
     
     Args:
         collection: A SigmaCollection to extract fields from
         backend: A Backend instance used to escape and quote field names
+        group: Whether to group fields by logsource. Defaults to False.
         collect_errors: Whether to collect errors. Defaults to True.
     
     Returns:
-        Tuple[Set[str], List[SigmaError]]: A set of unique field names and any errors found
+        Tuple[Union[Set[str], Dict[str, Set[str]]], List[SigmaError]]: A set of unique field names (or a dict of set if grouped) and any errors found
     """
     all_fields: Set[str] = set()
+    grouped_fields: Dict[str, Set[str]] = {}
     all_errors: List[SigmaError] = []
     
     for rule in collection:
@@ -202,6 +205,15 @@ def extract_fields_from_collection(
         fields, errors = get_fields(backend, rule, collect_errors)
         all_fields.update(fields)
         all_errors.extend(errors)
-    
-    return all_fields, all_errors
+        if group:
+            if isinstance(rule, SigmaRule):  # Correlations not supported, they don't have logsource
+                logsource = f"{rule.logsource.category or ''}|{rule.logsource.product or ''}|{rule.logsource.service or ''}"
+                if logsource not in grouped_fields:
+                    grouped_fields[logsource] = set()
+                grouped_fields[logsource].update(fields)
+
+    if group:
+        return grouped_fields, all_errors
+    else:
+        return all_fields, all_errors
 
