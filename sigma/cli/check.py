@@ -22,7 +22,7 @@ severity_color = {"low": "green", "medium": "yellow", "high": "red"}
 # ==========================================
 # Data Processing & Extraction Functions
 # ==========================================
-def setup_validator(validation_config, excluded, exclude, validator, name):
+def setup_validator(validation_config, exclude):
     if (
         validation_config is None
     ):  # no validation config provided, use basic config with all validators
@@ -108,7 +108,7 @@ def check(
 ):
     """Check Sigma rules for validity and best practices (not yet implemented)."""
     
-    rule_validator = setup_validator(validation_config, excluded, exclude, validator, name)
+    rule_validator = setup_validator(validation_config, exclude)
 
     try:
         rule_collection = load_rules(input, file_pattern)
