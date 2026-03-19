@@ -19,6 +19,33 @@ validators = plugins.validators
 
 severity_color = {"low": "green", "medium": "yellow", "high": "red"}
 
+def setup_validator(validation_config, excluded, exclude, validator, name):
+    if (
+        validation_config is None
+    ):  # no validation config provided, use basic config with all validators
+        exclude_lower = [excluded.lower() for excluded in exclude]
+        exclude_invalid = [
+            excluded for excluded in exclude_lower if excluded not in validators.keys()
+        ]
+        exclude_valid = [
+            excluded for excluded in exclude_lower if excluded not in exclude_invalid
+        ]
+    
+        report_config_warnings(exclude_invalid, exclude_valid)
+    
+        validators_filtered = [
+            validator
+            for name, validator in validators.items()
+            if name.lower() not in exclude_valid
+        ]
+        rule_validator = SigmaValidator(validators_filtered)
+    else:
+        if exclude:
+            click.echo(
+                f"A configuration file and the `--exclude` parameter was set, ignoring the `--exclude` parameter."
+            )
+        rule_validator = SigmaValidator.from_yaml(validation_config.read(), validators)
+    return rule_validator
 
 @click.command()
 @click.option(
@@ -66,36 +93,8 @@ def check(
     input, validation_config, file_pattern, fail_on_error, fail_on_issues, exclude
 ):
     """Check Sigma rules for validity and best practices (not yet implemented)."""
-    if (
-        validation_config is None
-    ):  # no validation config provided, use basic config with all validators
-        exclude_lower = [excluded.lower() for excluded in exclude]
-        exclude_invalid = [
-            excluded for excluded in exclude_lower if excluded not in validators.keys()
-        ]
-        exclude_valid = [
-            excluded for excluded in exclude_lower if excluded not in exclude_invalid
-        ]
-
-        if len(exclude_invalid) > 0:
-            click.echo(
-                f"Invalid validators name : {exclude_invalid} use 'sigma list validators'"
-            )
-        if len(exclude_valid) > 0:
-            click.echo(f"Ignoring these validators : {exclude_valid}'")
-
-        validators_filtered = [
-            validator
-            for name, validator in validators.items()
-            if name.lower() not in exclude_valid
-        ]
-        rule_validator = SigmaValidator(validators_filtered)
-    else:
-        if exclude:
-            click.echo(
-                f"A configuration file and the `--exclude` parameter was set, ignoring the `--exclude` parameter."
-            )
-        rule_validator = SigmaValidator.from_yaml(validation_config.read(), validators)
+    
+    rule_validator = setup_validator(validation_config, excluded, exclude, validator, name)
 
     try:
         rule_collection = load_rules(input, file_pattern)
