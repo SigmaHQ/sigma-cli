@@ -19,6 +19,9 @@ validators = plugins.validators
 
 severity_color = {"low": "green", "medium": "yellow", "high": "red"}
 
+# ==========================================
+# Data Processing & Extraction Functions
+# ==========================================
 def setup_validator(validation_config, excluded, exclude, validator, name):
     if (
         validation_config is None
@@ -46,6 +49,17 @@ def setup_validator(validation_config, excluded, exclude, validator, name):
             )
         rule_validator = SigmaValidator.from_yaml(validation_config.read(), validators)
     return rule_validator
+    
+# ==========================================
+# Reporting & Output Functions
+# ==========================================
+
+def report_config_warnings(exclude_invalid, exclude_valid):
+    """Prints warnings regarding invalid or excluded validators."""
+    if len(exclude_invalid) > 0:
+        click.echo(f"Invalid validators name : {exclude_invalid} use 'sigma list validators'")
+    if len(exclude_valid) > 0:
+        click.echo(f"Ignoring these validators : {exclude_valid}'")
 
 @click.command()
 @click.option(
