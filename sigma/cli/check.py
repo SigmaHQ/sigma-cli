@@ -164,10 +164,10 @@ def check(
                 # Need to split SigmaValidationIssue __str__
                 formatted_rules_output = ", ".join(
                     [
-                        str(rule.source)
-                        if rule.source is not None
-                        else str(rule.id) or rule.title
-                        for rule in issue.rules
+                        str(rule_with_issue.source)
+                        if rule_with_issue.source is not None
+                        else str(rule_with_issue.id) or rule_with_issue.title
+                        for rule_with_issue in issue.rules
                     ]
                 )
                 additional_fields = " ".join(
