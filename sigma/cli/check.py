@@ -70,6 +70,36 @@ def validate_loaded_rules(check_rules, rule_validator):
     return issues
 
 
+def load_and_check_rules(input, file_pattern, rule_errors, cond_errors):
+    rule_collection = load_rules(input, file_pattern)
+    check_rules = list()
+    first_error = True
+    for rule in rule_collection.rules:
+        if (
+            len(rule.errors) > 0
+        ):  # rule has errors: print errors and skip further checking of rule
+            if first_error:
+                click.echo("=== Sigma Rule Errors ===")
+                first_error = False
+    
+            for error in rule.errors:
+                click.echo(error)
+                rule_errors.update((error.__class__.__name__,))
+        elif isinstance(rule, SigmaRule):  # rule has no errors, parse condition
+            try:
+                for condition in rule.detection.parsed_condition:
+                    condition.parse()
+                check_rules.append(rule)
+            except SigmaConditionError as e:  # Error in condition
+                error = str(e)
+                click.echo(
+                    f"Condition error in { str(condition.source) }:{ error }"
+                )
+                cond_errors.update((error,))
+        else:
+            check_rules.append(rule)
+    return check_rules
+
 @click.command()
 @click.option(
     "--validation-config",
@@ -120,35 +150,9 @@ def check(
     rule_validator = setup_validator(validation_config, exclude)
 
     try:
-        rule_collection = load_rules(input, file_pattern)
         rule_errors = Counter()
         cond_errors = Counter()
-        check_rules = list()
-        first_error = True
-        for rule in rule_collection.rules:
-            if (
-                len(rule.errors) > 0
-            ):  # rule has errors: print errors and skip further checking of rule
-                if first_error:
-                    click.echo("=== Sigma Rule Errors ===")
-                    first_error = False
-
-                for error in rule.errors:
-                    click.echo(error)
-                    rule_errors.update((error.__class__.__name__,))
-            elif isinstance(rule, SigmaRule):  # rule has no errors, parse condition
-                try:
-                    for condition in rule.detection.parsed_condition:
-                        condition.parse()
-                    check_rules.append(rule)
-                except SigmaConditionError as e:  # Error in condition
-                    error = str(e)
-                    click.echo(
-                        f"Condition error in { str(condition.source) }:{ error }"
-                    )
-                    cond_errors.update((error,))
-            else:
-                check_rules.append(rule)
+        check_rules = load_and_check_rules(input, file_pattern, rule_errors, cond_errors)
 
         # TODO: From Python 3.10 the commented line below can be used.
         rule_error_count = sum(rule_errors.values())
