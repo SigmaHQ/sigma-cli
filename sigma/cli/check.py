@@ -62,6 +62,14 @@ def report_config_warnings(exclude_invalid, exclude_valid):
     if len(exclude_valid) > 0:
         click.echo(f"Ignoring these validators : {exclude_valid}'")
 
+def validate_loaded_rules(check_rules, rule_validator):
+    with click.progressbar(
+        check_rules, label="Checking Sigma rules", file=stderr
+    ) as rules:
+        issues = rule_validator.validate_rules(rules)
+    return issues
+
+
 @click.command()
 @click.option(
     "--validation-config",
@@ -146,10 +154,7 @@ def check(
         rule_error_count = sum(rule_errors.values())
         # rule_error_count = rule_errors.total()
 
-        with click.progressbar(
-            check_rules, label="Checking Sigma rules", file=stderr
-        ) as rules:
-            issues = rule_validator.validate_rules(rules)
+        issues = validate_loaded_rules(check_rules, rule_validator)
 
         issue_count = len(issues)
         issue_counter = Counter()
