@@ -157,7 +157,7 @@ def check(
             click.echo("=== Issues ===")
             for issue in issues:
                 # Need to split SigmaValidationIssue __str__
-                rules = ", ".join(
+                formatted_rules_output = ", ".join(
                     [
                         str(rule.source)
                         if rule.source is not None
@@ -185,7 +185,7 @@ def check(
                     + " description="
                     + click.style(issue.description, bold=True, fg="blue")
                     + " rule="
-                    + click.style(rules, bold=True, fg="blue")
+                    + click.style(formatted_rules_output, bold=True, fg="blue")
                     + f" {additional_fields}"
                 )
                 issue_counter.update((issue.__class__,))
