@@ -14,15 +14,16 @@ from sigma.plugins import InstalledSigmaPlugins
 from sigma.validation import SigmaValidator
 from sigma.rule import SigmaRule
 
-plugins = InstalledSigmaPlugins.autodiscover()
-validators = plugins.validators
-
 severity_color = {"low": "green", "medium": "yellow", "high": "red"}
 
 # ==========================================
 # Data Processing & Extraction Functions
 # ==========================================
 def setup_validator(validation_config, exclude):
+    
+    plugins = InstalledSigmaPlugins.autodiscover()
+    validators = plugins.validators
+
     if (
         validation_config is None
     ):  # no validation config provided, use basic config with all validators
