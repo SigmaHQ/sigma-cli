@@ -1,10 +1,3 @@
-import importlib
-import importlib.metadata
-import os
-import site
-import sys
-from functools import lru_cache
-
 import click
 from sigma.plugins import InstalledSigmaPlugins
 from sigma.modifiers import modifier_mapping
@@ -20,76 +13,49 @@ from textwrap import dedent, fill
 plugins = InstalledSigmaPlugins.autodiscover()
 
 
-def _site_dirs() -> frozenset:
-    """Return all known site-packages directories."""
-    dirs = set()
+def _plugin_id_from_module(module_name: str, namespace: str) -> str:
+    """Extract the Sigma plugin identifier from a module name.
+
+    Sigma backends live in ``sigma.backends.<plugin_id>.*`` and pipelines in
+    ``sigma.pipelines.<plugin_id>.*``.  Splitting on '.' and picking the
+    component after the namespace prefix returns the plugin identifier directly
+    (e.g. ``sigma.backends.splunk.backend`` → ``splunk``).
+    """
+    parts = module_name.split(".")
+    # Expected layout: sigma . <namespace> . <plugin_id> [. submodule ...]
     try:
-        dirs.update(site.getsitepackages())
-    except AttributeError:
-        pass
-    try:
-        dirs.add(site.getusersitepackages())
-    except AttributeError:
-        pass
-    # Fall back to sys.path entries that contain "site-packages"
-    if not dirs:
-        dirs.update(p for p in sys.path if "site-packages" in p)
-    return frozenset(dirs)
+        idx = parts.index(namespace)
+        plugin_id = parts[idx + 1]
+        return plugin_id if plugin_id else "n/a"
+    except (ValueError, IndexError):
+        return "n/a"
 
 
-@lru_cache(maxsize=None)
-def _file_to_dist_mapping() -> dict:
-    """Build and cache a mapping from relative file paths to distribution names."""
-    mapping: dict = {}
-    for dist in importlib.metadata.distributions():
-        dist_name = dist.metadata.get("Name", "")
-        for f in dist.files or []:
-            mapping[str(f).replace(os.sep, "/")] = dist_name
-    return mapping
+def _get_backend_plugin_id(backend_class) -> str:
+    """Return the Sigma plugin identifier for a backend class."""
+    return _plugin_id_from_module(backend_class.__module__, "backends")
 
 
-def _get_module_package(module_name: str) -> str:
-    """Return the distribution package name that provides the given module."""
-    try:
-        mod = importlib.import_module(module_name)
-        mod_file = getattr(mod, "__file__", None)
-        if mod_file is None:
-            return "n/a"
-        mapping = _file_to_dist_mapping()
-        for path in _site_dirs():
-            if mod_file.startswith(path):
-                rel = os.path.relpath(mod_file, path).replace(os.sep, "/")
-                return mapping.get(rel, "n/a")
-    except (ImportError, AttributeError, ValueError):
-        pass
-    return "n/a"
-
-
-def _get_backend_package(backend_class) -> str:
-    """Return the distribution package name for a backend class."""
-    return _get_module_package(backend_class.__module__)
-
-
-def _get_pipeline_package(pipeline_obj) -> str:
-    """Return the distribution package name for a pipeline object or function."""
+def _get_pipeline_plugin_id(pipeline_obj) -> str:
+    """Return the Sigma plugin identifier for a pipeline object or function."""
     # Plain function: use its own module
     module_name = getattr(pipeline_obj, "__module__", None)
     if module_name and module_name != "sigma.pipelines.base":
-        return _get_module_package(module_name)
+        return _plugin_id_from_module(module_name, "pipelines")
     # Pipeline-decorator instance: retrieve the wrapped function's module
     func = getattr(pipeline_obj, "func", None)
     if func is not None:
         func_module = getattr(func, "__module__", None)
         if func_module:
-            return _get_module_package(func_module)
+            return _plugin_id_from_module(func_module, "pipelines")
     return "n/a"
 
 
-# Pre-compute package names for all discovered pipelines (keyed by identifier).
+# Pre-compute plugin IDs for all discovered pipelines (keyed by identifier).
 # This must be done before the resolver resolves pipeline callables into plain
 # ProcessingPipeline objects, which no longer carry module information.
-_pipeline_packages: dict = {
-    name: _get_pipeline_package(pipeline)
+_pipeline_plugin_ids: dict = {
+    name: _get_pipeline_plugin_id(pipeline)
     for name, pipeline in plugins.pipelines.items()
 }
 
@@ -121,7 +87,7 @@ def list_targets():
                     name,
                     fill(backend.name, width=60),
                     "Yes" if backend.requires_pipeline else "No",
-                    _get_backend_package(backend),
+                    _get_backend_plugin_id(backend),
                 )
                 for name, backend in plugins.backends.items()
             ]
@@ -209,7 +175,7 @@ def list_pipelines(backend):
                         pipeline.priority,
                         fill(pipeline.name, width=60),
                         backends,
-                        _pipeline_packages.get(name, "n/a"),
+                        _pipeline_plugin_ids.get(name, "n/a"),
                     )
                 )
         table.align = "l"
