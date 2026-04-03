@@ -1,3 +1,10 @@
+import importlib
+import importlib.metadata
+import os
+import site
+import sys
+from functools import lru_cache
+
 import click
 from sigma.plugins import InstalledSigmaPlugins
 from sigma.modifiers import modifier_mapping
@@ -11,6 +18,80 @@ from prettytable import PrettyTable
 from textwrap import dedent, fill
 
 plugins = InstalledSigmaPlugins.autodiscover()
+
+
+def _site_dirs() -> frozenset:
+    """Return all known site-packages directories."""
+    dirs = set()
+    try:
+        dirs.update(site.getsitepackages())
+    except AttributeError:
+        pass
+    try:
+        dirs.add(site.getusersitepackages())
+    except AttributeError:
+        pass
+    # Fall back to sys.path entries that contain "site-packages"
+    if not dirs:
+        dirs.update(p for p in sys.path if "site-packages" in p)
+    return frozenset(dirs)
+
+
+@lru_cache(maxsize=None)
+def _file_to_dist_mapping() -> dict:
+    """Build and cache a mapping from relative file paths to distribution names."""
+    mapping: dict = {}
+    for dist in importlib.metadata.distributions():
+        dist_name = dist.metadata.get("Name", "")
+        for f in dist.files or []:
+            mapping[str(f).replace(os.sep, "/")] = dist_name
+    return mapping
+
+
+def _get_module_package(module_name: str) -> str:
+    """Return the distribution package name that provides the given module."""
+    try:
+        mod = importlib.import_module(module_name)
+        mod_file = getattr(mod, "__file__", None)
+        if mod_file is None:
+            return "n/a"
+        mapping = _file_to_dist_mapping()
+        for path in _site_dirs():
+            if mod_file.startswith(path):
+                rel = os.path.relpath(mod_file, path).replace(os.sep, "/")
+                return mapping.get(rel, "n/a")
+    except (ImportError, AttributeError, ValueError):
+        pass
+    return "n/a"
+
+
+def _get_backend_package(backend_class) -> str:
+    """Return the distribution package name for a backend class."""
+    return _get_module_package(backend_class.__module__)
+
+
+def _get_pipeline_package(pipeline_obj) -> str:
+    """Return the distribution package name for a pipeline object or function."""
+    # Plain function: use its own module
+    module_name = getattr(pipeline_obj, "__module__", None)
+    if module_name and module_name != "sigma.pipelines.base":
+        return _get_module_package(module_name)
+    # Pipeline-decorator instance: retrieve the wrapped function's module
+    func = getattr(pipeline_obj, "func", None)
+    if func is not None:
+        func_module = getattr(func, "__module__", None)
+        if func_module:
+            return _get_module_package(func_module)
+    return "n/a"
+
+
+# Pre-compute package names for all discovered pipelines (keyed by identifier).
+# This must be done before the resolver resolves pipeline callables into plain
+# ProcessingPipeline objects, which no longer carry module information.
+_pipeline_packages: dict = {
+    name: _get_pipeline_package(pipeline)
+    for name, pipeline in plugins.pipelines.items()
+}
 
 
 @click.group(name="list", help="List available targets or processing pipelines.")
@@ -32,6 +113,7 @@ def list_targets():
             "Identifier",
             "Target Query Language",
             "Processing Pipeline Required",
+            "Plugin",
         )
         table.add_rows(
             [
@@ -39,6 +121,7 @@ def list_targets():
                     name,
                     fill(backend.name, width=60),
                     "Yes" if backend.requires_pipeline else "No",
+                    _get_backend_package(backend),
                 )
                 for name, backend in plugins.backends.items()
             ]
@@ -108,6 +191,7 @@ def list_pipelines(backend):
             "Priority",
             "Processing Pipeline",
             "Backends",
+            "Plugin",
         )
         for name, pipeline in pipelines:
             if (
@@ -120,7 +204,13 @@ def list_pipelines(backend):
                 else:
                     backends = "all"
                 table.add_row(
-                    (name, pipeline.priority, fill(pipeline.name, width=60), backends)
+                    (
+                        name,
+                        pipeline.priority,
+                        fill(pipeline.name, width=60),
+                        backends,
+                        _pipeline_packages.get(name, "n/a"),
+                    )
                 )
         table.align = "l"
         click.echo(table.get_string())
