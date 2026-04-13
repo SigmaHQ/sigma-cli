@@ -251,13 +251,25 @@ def analyze_logsource(
     default=False,
     help="Group fields by logsource.",
 )
+@click.option(
+    "--enable-template-vars",
+    is_flag=True,
+    default=False,
+    help="Enable template variable support in processing pipeline. WARNING: This feature can be dangerous and allow arbitrary code execution if used with untrusted Sigma rules.",
+)
+@click.option(
+    "--template-vars-path",
+    multiple=True,
+    type=click.Path(exists=True, path_type=pathlib.Path),
+    help="Allowed paths for template variable expansion. Can be specified multiple times.",
+)
 @click.argument(
     "input",
     nargs=-1,
     required=True,
     type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
 )
-def analyze_fields(file_pattern, target, pipeline, pipeline_check, group, input):
+def analyze_fields(file_pattern, target, pipeline, pipeline_check, group, enable_template_vars, template_vars_path, input):
     """Extract field names from Sigma rule sets.
     
     This command extracts and outputs all unique field names present in the given
@@ -282,6 +294,12 @@ def analyze_fields(file_pattern, target, pipeline, pipeline_check, group, input)
         processing_pipeline = pipeline_resolver.resolve(
             pipeline, target if pipeline_check else None
         )
+        
+        # Configure template variable settings on the processing pipeline
+        if enable_template_vars:
+            processing_pipeline.allow_template_vars = True
+        if template_vars_path:
+            processing_pipeline.vars_allowed_paths = [str(p) for p in template_vars_path]
     except SigmaPipelineNotFoundError as e:
         raise click.UsageError(
             f"The pipeline '{e.spec}' was not found.\n"

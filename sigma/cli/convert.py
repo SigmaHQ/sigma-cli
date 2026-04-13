@@ -157,6 +157,18 @@ class ChoiceWithPluginHint(click.Choice):
     multiple=True,
     help="Backend-specific options provided as key=value pair.",
 )
+@click.option(
+    "--enable-template-vars",
+    is_flag=True,
+    default=False,
+    help="Enable template variable support in processing pipeline. WARNING: This feature can be dangerous and allow arbitrary code execution if used with untrusted Sigma rules.",
+)
+@click.option(
+    "--template-vars-path",
+    multiple=True,
+    type=click.Path(exists=True, path_type=pathlib.Path),
+    help="Allowed paths for template variable expansion. Can be specified multiple times.",
+)
 @click.argument(
     "input",
     nargs=-1,
@@ -184,6 +196,8 @@ def convert(
     encoding,
     json_indent,
     backend_option,
+    enable_template_vars,
+    template_vars_path,
     input,
     file_pattern,
     verbose,
@@ -228,6 +242,12 @@ def convert(
         processing_pipeline = pipeline_resolver.resolve(
             pipeline, target if pipeline_check else None
         )
+        
+        # Configure template variable settings on the processing pipeline
+        if enable_template_vars:
+            processing_pipeline.allow_template_vars = True
+        if template_vars_path:
+            processing_pipeline.vars_allowed_paths = [str(p) for p in template_vars_path]
     except SigmaPipelineNotFoundError as e:
         raise click.UsageError(
             f"The pipeline '{e.spec}' was not found.\n"
