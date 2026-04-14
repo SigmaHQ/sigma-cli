@@ -7,6 +7,52 @@ import click
 from packaging.specifiers import SpecifierSet
 from prettytable import PrettyTable
 
+
+def get_cache_datasets():
+    from sigma.data import mitre_attack, mitre_d3fend
+
+    return [
+        {
+            'key': 'mitre_attack',
+            'name': 'MITRE ATT&CK',
+            'module': mitre_attack,
+            'cache_key': 'mitre_attack_data_default',
+            'version_key': 'mitre_attack_version',
+            'trigger_attr': 'mitre_attack_techniques_tactics_mapping'
+        },
+        {
+            'key': 'mitre_d3fend',
+            'name': 'MITRE D3FEND',
+            'module': mitre_d3fend,
+            'cache_key': 'mitre_d3fend_data_default',
+            'version_key': 'mitre_d3fend_version',
+            'trigger_attr': 'mitre_d3fend_techniques'
+        }
+    ]
+
+
+def parse_dataset_url_overrides(urls, datasets):
+    dataset_names = {dataset['key'] for dataset in datasets}
+    overrides = {}
+
+    for url_override in urls:
+        dataset_name, separator, dataset_url = url_override.partition(":")
+        if not separator or not dataset_name or not dataset_url:
+            raise click.BadParameter(
+                "must use the format dataset:url",
+                param_hint="--url",
+            )
+
+        if dataset_name not in dataset_names:
+            raise click.BadParameter(
+                f"unknown dataset '{dataset_name}'. Available datasets: {', '.join(sorted(dataset_names))}",
+                param_hint="--url",
+            )
+
+        overrides[dataset_name] = dataset_url
+
+    return overrides
+
 def get_pysigma_requirement():
     requires = importlib.metadata.requires("sigma-cli")
     return [
@@ -81,23 +127,7 @@ def check_pysigma(quiet=False):
 def list_cache_command():
     """List the cached versions of pySigma data and their timestamps."""
     try:
-        from sigma.data import mitre_attack, mitre_d3fend
-        
-        # Configuration for datasets to check
-        datasets = [
-            {
-                'name': 'MITRE ATT&CK',
-                'module': mitre_attack,
-                'cache_key': 'mitre_attack_data_default',
-                'version_key': 'mitre_attack_version'
-            },
-            {
-                'name': 'MITRE D3FEND',
-                'module': mitre_d3fend,
-                'cache_key': 'mitre_d3fend_data_default',
-                'version_key': 'mitre_d3fend_version'
-            }
-        ]
+        datasets = get_cache_datasets()
         
         table = PrettyTable()
         table.field_names = ["Dataset", "Version", "Cached Date"]
@@ -146,12 +176,7 @@ def list_cache_command():
 def clear_cache_command(yes):
     """Delete the cached data for all datasets."""
     try:
-        from sigma.data import mitre_attack, mitre_d3fend
-        
-        datasets = [
-            {'name': 'MITRE ATT&CK', 'module': mitre_attack},
-            {'name': 'MITRE D3FEND', 'module': mitre_d3fend}
-        ]
+        datasets = get_cache_datasets()
         
         # Check what's cached
         cached_datasets = []
@@ -215,23 +240,22 @@ def clear_cache_command(yes):
     is_flag=True,
     help="Skip confirmation prompt.",
 )
-def update_cache_command(yes):
+@click.option(
+    "--url",
+    "urls",
+    multiple=True,
+    help="Override a dataset source in the format dataset:url.",
+)
+def update_cache_command(yes, urls):
     """Update the cache by deleting it and re-caching data for all datasets."""
     try:
-        from sigma.data import mitre_attack, mitre_d3fend
-        
-        datasets = [
-            {
-                'name': 'MITRE ATT&CK',
-                'module': mitre_attack,
-                'trigger_attr': 'mitre_attack_techniques_tactics_mapping'
-            },
-            {
-                'name': 'MITRE D3FEND',
-                'module': mitre_d3fend,
-                'trigger_attr': 'mitre_d3fend_techniques'
-            }
-        ]
+        datasets = get_cache_datasets()
+        url_overrides = parse_dataset_url_overrides(urls, datasets)
+
+        for dataset in datasets:
+            dataset_url = url_overrides.get(dataset['key'])
+            if dataset_url is not None:
+                dataset['module'].set_url(dataset_url)
         
         # Get current cache info
         cached_datasets = []
@@ -298,5 +322,7 @@ def update_cache_command(yes):
     except ImportError:
         click.echo(click.style("Error: Unable to import pySigma data modules.", fg="red"))
         click.echo("Make sure pySigma is installed correctly.")
+    except click.ClickException:
+        raise
     except Exception as e:
         click.echo(click.style(f"Error updating cache: {str(e)}", fg="red"))
