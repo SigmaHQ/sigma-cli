@@ -8,10 +8,6 @@ from sigma.cli.convert import pipeline_resolver
 from sigma.cli.rules import check_rule_errors, load_rules
 from sigma.analyze.attack import score_functions, calculate_attack_scores
 from sigma.analyze.fields import extract_fields_from_collection
-from sigma.data.mitre_attack import (
-    mitre_attack_techniques_tactics_mapping,
-    mitre_attack_version,
-)
 from sigma.analyze.stats import create_logsourcestats, format_row
 from sigma.rule import SigmaLevel, SigmaStatus
 from sigma.plugins import InstalledSigmaPlugins
@@ -118,6 +114,11 @@ def analyze_attack(
         min_sigmastatus = SigmaStatus[min_status.upper()]
     except:
         min_sigmastatus = SigmaStatus.UNSUPPORTED
+    from sigma.data.mitre_attack import (
+        mitre_attack_techniques_tactics_mapping,
+        mitre_attack_version,
+    )
+
     rules = load_rules(input, file_pattern)
     check_rule_errors(rules)
     score_function = score_functions[function][0]
