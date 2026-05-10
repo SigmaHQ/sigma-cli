@@ -21,6 +21,9 @@ on macOS use
 ```
 python3 -m pip install sigma-cli
 ```
+```
+brew install sigma-cli
+```
 
 Another way is to run this from source in a virtual environment managed by [Poetry](https://python-poetry.org/docs/basic-usage/):
 
