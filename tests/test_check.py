@@ -9,8 +9,7 @@ TEST_FILES_DIR = Path(__file__).parent / "files"
 
 
 def _require_junitxml_option(cli):
-    help_result = cli.invoke(check, ["--help"])
-    if "--junitxml" not in help_result.output:
+    if "junitxml" not in {param.name for param in check.params}:
         pytest.skip("--junitxml option is not available in this branch")
 
 
@@ -117,6 +116,7 @@ def test_check_junitxml_created_and_well_formed(tmp_path):
     assert report_path.exists()
     root = ET.parse(report_path).getroot()
     assert root.tag == "testsuites"
+    assert len(root.findall("testsuite")) > 0
 
 
 def test_check_junitxml_reports_failures_for_invalid_rules(tmp_path):
