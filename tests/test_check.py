@@ -1,6 +1,17 @@
 from click.testing import CliRunner
+from pathlib import Path
+import xml.etree.ElementTree as ET
+import pytest
 
 from sigma.cli.check import check
+
+TEST_FILES_DIR = Path(__file__).parent / "files"
+
+
+def _require_junitxml_option(cli):
+    help_result = cli.invoke(check, ["--help"])
+    if "--junitxml" not in help_result.output:
+        pytest.skip("--junitxml option is not available in this branch")
 
 
 def test_check_help():
@@ -88,3 +99,39 @@ def test_check_exclude():
     assert "Invalid validators name" in result.stdout
     assert "myvalidator" in result.stdout
     assert "Check failure" in result.stdout
+
+
+def test_check_junitxml_created_and_well_formed(tmp_path):
+    cli = CliRunner()
+    _require_junitxml_option(cli)
+    report_path = tmp_path / "check-report.xml"
+    result = cli.invoke(
+        check,
+        [
+            "--junitxml",
+            str(report_path),
+            str(TEST_FILES_DIR / "invalid"),
+        ],
+    )
+    assert result.exit_code == 1
+    assert report_path.exists()
+    root = ET.parse(report_path).getroot()
+    assert root.tag == "testsuites"
+
+
+def test_check_junitxml_reports_failures_for_invalid_rules(tmp_path):
+    cli = CliRunner()
+    _require_junitxml_option(cli)
+    report_path = tmp_path / "check-report.xml"
+    result = cli.invoke(
+        check,
+        [
+            "--junitxml",
+            str(report_path),
+            str(TEST_FILES_DIR / "invalid"),
+        ],
+    )
+    assert result.exit_code == 1
+    root = ET.parse(report_path).getroot()
+    failures = root.findall(".//failure")
+    assert len(failures) > 0
