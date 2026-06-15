@@ -53,7 +53,7 @@ def generate_junit_report(results, output_file):
         )
 
         for res in tests:
-            severity = res.get("severity", "ok").lower()
+            severity = (res.get("severity") or "ok").lower()
             icon = SEVERITY_ICONS.get(severity, SEVERITY_ICONS["error"])
 
             test_case = ET.SubElement(
@@ -173,7 +173,7 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
                         "status": "failed",
                         "issue_type": e.__class__.__name__,
                         "severity": "condition_error",
-                        "description": error,
+                        "description": str(error),
                     })
         else:
             check_rules.append(rule)

@@ -132,8 +132,12 @@ def test_check_junitxml_invalid(tmp_path):
     )
     assert failures > 0, "Expected failure entries in JUnit XML for invalid rules"
 
-    # Every testcase inside a suite with failures should have a <failure> child
+    # The number of <failure> elements across all testcases must match
+    # the reported failure counts in the testsuite attributes.
     for suite in root.findall("testsuite"):
-        if int(suite.get("failures", "0")) > 0:
-            for testcase in suite.findall("testcase"):
-                assert testcase.find("failure") is not None
+        reported_failures = int(suite.get("failures", "0"))
+        actual_failures = sum(
+            1 for testcase in suite.findall("testcase")
+            if testcase.find("failure") is not None
+        )
+        assert actual_failures == reported_failures
