@@ -3,7 +3,6 @@ from collections import Counter
 from sys import stderr
 from textwrap import fill
 import xml.etree.ElementTree as ET
-import sys
 
 from dataclasses import fields
 
