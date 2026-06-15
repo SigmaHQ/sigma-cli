@@ -1,3 +1,6 @@
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
 from click.testing import CliRunner
 
 from sigma.cli.check import check
@@ -88,3 +91,49 @@ def test_check_exclude():
     assert "Invalid validators name" in result.stdout
     assert "myvalidator" in result.stdout
     assert "Check failure" in result.stdout
+
+
+def test_check_junitxml_creates_file(tmp_path):
+    """JUnit XML file is created and well-formed when --junitxml is specified."""
+    cli = CliRunner()
+    output_xml = tmp_path / "results.xml"
+    # Use --pass-on-error so exit code is 0; invalid rules don't reach the network
+    # validator, which avoids the pre-existing MITRE D3FEND network dependency.
+    result = cli.invoke(
+        check, ["--pass-on-error", "--junitxml", str(output_xml), "tests/files/invalid"]
+    )
+    assert result.exit_code == 0
+    assert output_xml.exists(), "JUnit XML file was not created"
+    assert f"JUnit report saved to: {output_xml}" in result.stdout
+
+    # Verify the XML is well-formed and has the expected root element
+    tree = ET.parse(output_xml)
+    root = tree.getroot()
+    assert root.tag == "testsuites"
+
+
+def test_check_junitxml_invalid(tmp_path):
+    """JUnit XML file contains failure entries when rules have errors."""
+    cli = CliRunner()
+    output_xml = tmp_path / "results.xml"
+    result = cli.invoke(
+        check, ["--pass-on-error", "--junitxml", str(output_xml), "tests/files/invalid"]
+    )
+    assert result.exit_code == 0
+    assert output_xml.exists(), "JUnit XML file was not created"
+
+    tree = ET.parse(output_xml)
+    root = tree.getroot()
+    assert root.tag == "testsuites"
+
+    # At least one testsuite should have failures > 0
+    failures = sum(
+        int(suite.get("failures", "0")) for suite in root.findall("testsuite")
+    )
+    assert failures > 0, "Expected failure entries in JUnit XML for invalid rules"
+
+    # Every testcase inside a suite with failures should have a <failure> child
+    for suite in root.findall("testsuite"):
+        if int(suite.get("failures", "0")) > 0:
+            for testcase in suite.findall("testcase"):
+                assert testcase.find("failure") is not None
