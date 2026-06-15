@@ -8,7 +8,7 @@ from sigma.cli.check import check
 TEST_FILES_DIR = Path(__file__).parent / "files"
 
 
-def _skip_if_junitxml_unavailable():
+def skip_if_junitxml_unavailable():
     if "junitxml" not in {param.name for param in check.params}:
         pytest.skip("--junitxml option is not available in this branch")
 
@@ -102,7 +102,7 @@ def test_check_exclude():
 
 def test_check_junitxml_created_and_well_formed(tmp_path):
     runner = CliRunner()
-    _skip_if_junitxml_unavailable()
+    skip_if_junitxml_unavailable()
     report_path = tmp_path / "check-report.xml"
     result = runner.invoke(
         check,
@@ -115,6 +115,8 @@ def test_check_junitxml_created_and_well_formed(tmp_path):
     assert result.exit_code == 1
     assert report_path.exists()
     root = ET.parse(report_path).getroot()
+    # JUnit XML producers can emit either a single "testsuite" root
+    # or a "testsuites" wrapper for multiple suites.
     assert root.tag in {"testsuites", "testsuite"}
     if root.tag == "testsuites":
         assert len(root.findall("testsuite")) > 0
@@ -122,7 +124,7 @@ def test_check_junitxml_created_and_well_formed(tmp_path):
 
 def test_check_junitxml_reports_failures_for_invalid_rules(tmp_path):
     runner = CliRunner()
-    _skip_if_junitxml_unavailable()
+    skip_if_junitxml_unavailable()
     report_path = tmp_path / "check-report.xml"
     result = runner.invoke(
         check,
