@@ -135,8 +135,22 @@ def write_separate_files(
         encoding: Output encoding
         json_indent: JSON indentation
         base_dir: Base directory to calculate relative paths from
+    
+    Raises:
+        click.UsageError: If the collection contains correlation rules
     """
     output_dir = pathlib.Path(output_dir)
+    
+    # Check for correlation rules - they cannot be converted individually
+    # because they reference other rules in the collection
+    for rule in rule_collection.rules:
+        if type(rule).__name__ == 'SigmaCorrelationRule':
+            raise click.UsageError(
+                f"Cannot use --output-dir with correlation rules. "
+                f"Correlation rule '{rule.title}' (ID: {rule.id}) references other rules "
+                f"and must be converted as part of the full collection. "
+                f"Use --output instead to write all rules to a single file."
+            )
     
     # Track number of files written
     files_written = 0

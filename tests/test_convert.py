@@ -408,3 +408,50 @@ def test_convert_output_dir_with_index(tmp_path):
     assert (output_dir / "multi_condition-2.txt").exists()
     assert (output_dir / "multi_condition-3.txt").exists()
 
+
+def test_convert_output_dir_with_correlation_rules(tmp_path):
+    """Test that correlation rules are not supported with --output-dir."""
+    cli = CliRunner()
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-c",
+            "test",
+            "--output-dir",
+            str(output_dir),
+            "tests/files/sigma_correlation_rules.yml",
+        ],
+    )
+    # Should fail with a clear error message
+    assert result.exit_code != 0
+    assert "correlation" in result.stderr.lower() or "collection" in result.stderr.lower()
+
+
+def test_convert_output_dir_with_filter(tmp_path):
+    """Test that filters are applied correctly with --output-dir."""
+    cli = CliRunner()
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "--filter",
+            "tests/files/sigma_filter.yml",
+            "--output-dir",
+            str(output_dir),
+            "tests/files/valid/sigma_rule.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    
+    # Check that output file exists
+    assert (output_dir / "sigma_rule.txt").exists()
+    
+    # Check that filter was applied
+    content = (output_dir / "sigma_rule.txt").read_text()
+    assert 'not User startswith "ADM_"' in content
+
