@@ -447,7 +447,7 @@ def test_convert_output_dir_with_filter(tmp_path):
         ],
     )
     assert result.exit_code == 0
-    
+
     # Check that output file exists
     assert (output_dir / "sigma_rule.txt").exists()
     

@@ -8,6 +8,7 @@ import click
 
 from sigma.cli.rules import load_rules, check_rule_errors
 from sigma.collection import SigmaCollection
+from sigma.correlations import SigmaCorrelationRule
 from sigma.conversion.base import Backend
 from sigma.exceptions import (
     SigmaError,
@@ -144,7 +145,7 @@ def write_separate_files(
     # Check for correlation rules - they cannot be converted individually
     # because they reference other rules in the collection
     for rule in rule_collection.rules:
-        if type(rule).__name__ == 'SigmaCorrelationRule':
+        if isinstance(rule, SigmaCorrelationRule):
             raise click.UsageError(
                 f"Cannot use --output-dir with correlation rules. "
                 f"Correlation rule '{rule.title}' (ID: {rule.id}) references other rules "
