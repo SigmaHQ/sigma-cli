@@ -81,6 +81,61 @@ sigma convert -t splunk -f savedsearches -p sysmon -o savedsearches.conf sigma/r
 
 Outputs a Splunk savedsearches.conf containing the converted searches.
 
+#### Separate File Output
+
+For scenarios where you need to convert multiple rules into separate files (e.g., for version control or selective deployment),
+use the `--output-dir` parameter along with `--output-filename-template`:
+
+```
+sigma convert -t esql -p ecs_windows --output-dir translated_rules/ rules/
+```
+
+This will create a separate file for each converted rule in the `translated_rules/` directory.
+
+**Template Variables:**
+
+The `--output-filename-template` parameter accepts the following variables:
+
+- `{path}`: Relative source directory path (e.g., `windows` for `rules/windows/rule.yml`)
+- `{stem}`: Filename without extension (e.g., `rule` for `rule.yml`)
+- `{index}`: Query index for rules that generate multiple queries (empty if only one query)
+
+**Examples:**
+
+Flat output structure (all files in one directory):
+```
+sigma convert -t esql -p ecs_windows --output-dir translated/ --output-filename-template "{stem}.esql" rules/
+```
+
+Preserve directory structure:
+```
+sigma convert -t esql -p ecs_windows --output-dir translated/ --output-filename-template "{path}/{stem}.esql" rules/
+```
+
+Handle rules with multiple queries:
+```
+sigma convert -t esql -p ecs_windows --output-dir translated/ --output-filename-template "{stem}-{index}.esql" rules/
+```
+
+Given input structure:
+```
+rules/
+├── windows/
+│   └── rule_1.yml
+├── linux/
+│   └── rule_2.yml
+```
+
+With `--output-filename-template "{path}/{stem}.esql"`, the output will be:
+```
+translated/
+├── windows/
+│   └── rule_1.esql
+├── linux/
+│   └── rule_2.esql
+```
+
+
 ### Integration of Backends and Pipelines
 
 Backends and pipelines can be integrated by adding the corresponding packages as dependency with:
