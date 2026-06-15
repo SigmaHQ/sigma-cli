@@ -150,8 +150,8 @@ def write_separate_files(
         try:
             result = backend.convert(single_rule_collection, format, correlation_method)
         except Exception as e:
-            # Skip rules that can't be converted
-            click.echo(f"Warning: Failed to convert {rule.source}: {e}", err=True)
+            # Skip rules that can't be converted - continue with remaining rules
+            click.echo(f"Warning: Failed to convert {rule.source}: {e}. Skipping rule.", err=True)
             continue
         
         # Get rule source path
@@ -215,7 +215,7 @@ def write_separate_files(
             output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
             files_written += 1
         else:
-            click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for {rule.source}", err=True)
+            click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for {rule.source}. Expected str, bytes, list, or dict. Skipping rule.", err=True)
     
     click.echo(f"Wrote {files_written} file(s) to {output_dir}", err=True)
 
@@ -297,7 +297,7 @@ def write_separate_files(
 )
 @click.option(
     "--output-filename-template",
-    "-oT",
+    "-ot",
     type=str,
     default="{stem}.txt",
     show_default=True,
