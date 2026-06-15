@@ -1,0 +1,12 @@
+title: Linux rule
+id: 44444444-4444-4444-4444-444444444444
+description: Linux specific rule
+status: stable
+level: high
+logsource:
+  category: process_creation
+  product: linux
+detection:
+  selection:
+    Image|endswith: '/linux'
+  condition: selection

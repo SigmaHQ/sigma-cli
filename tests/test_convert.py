@@ -271,3 +271,140 @@ def test_convert_invalid_correlation_method():
     )
     assert result.exit_code != 0
     assert "Correlation method 'invalid' is not supported" in result.stderr
+
+
+def test_convert_output_dir_basic(tmp_path):
+    """Test basic output to separate files in a directory."""
+    cli = CliRunner()
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-p",
+            "another_test",
+            "--disable-pipeline-check",
+            "--output-dir",
+            str(output_dir),
+            "tests/files/multiple_rules/rule_1.yml",
+            "tests/files/multiple_rules/rule_2.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Wrote 2 file(s)" in result.stderr
+    
+    # Check that output files exist
+    assert (output_dir / "rule_1.txt").exists()
+    assert (output_dir / "rule_2.txt").exists()
+    
+    # Check content
+    content1 = (output_dir / "rule_1.txt").read_text()
+    assert 'Image endswith "\\test1.exe"' in content1
+
+
+def test_convert_output_dir_with_subdirs(tmp_path):
+    """Test output with directory structure preserved."""
+    cli = CliRunner()
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-p",
+            "another_test",
+            "--disable-pipeline-check",
+            "--output-dir",
+            str(output_dir),
+            "--output-filename-template",
+            "{path}/{stem}.esql",
+            "tests/files/multiple_rules/",
+        ],
+    )
+    assert result.exit_code == 0
+    
+    # Check that output files exist with subdirectories
+    assert (output_dir / "windows" / "windows_rule.esql").exists()
+    assert (output_dir / "linux" / "linux_rule.esql").exists()
+
+
+def test_convert_output_dir_flat(tmp_path):
+    """Test output with flat structure (no subdirs)."""
+    cli = CliRunner()
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-p",
+            "another_test",
+            "--disable-pipeline-check",
+            "--output-dir",
+            str(output_dir),
+            "--output-filename-template",
+            "{stem}.txt",
+            "tests/files/multiple_rules/",
+        ],
+    )
+    assert result.exit_code == 0
+    
+    # Check that all files are in the root output directory
+    assert (output_dir / "rule_1.txt").exists()
+    assert (output_dir / "rule_2.txt").exists()
+    assert (output_dir / "windows_rule.txt").exists()
+    assert (output_dir / "linux_rule.txt").exists()
+
+
+def test_convert_output_dir_mutually_exclusive(tmp_path):
+    """Test that --output and --output-dir are mutually exclusive."""
+    cli = CliRunner()
+    output_file = tmp_path / "output.txt"
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-p",
+            "another_test",
+            "--disable-pipeline-check",
+            "--output",
+            str(output_file),
+            "--output-dir",
+            str(output_dir),
+            "tests/files/valid",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.stderr
+
+
+def test_convert_output_dir_with_index(tmp_path):
+    """Test output with index for rules that generate multiple queries."""
+    cli = CliRunner()
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-p",
+            "another_test",
+            "--disable-pipeline-check",
+            "--output-dir",
+            str(output_dir),
+            "--output-filename-template",
+            "{stem}-{index}.txt",
+            "tests/files/multiple_rules/multi_condition.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    
+    # Check that output files with indexes exist
+    # The rule has 3 conditions, so it should generate 3 separate queries
+    assert (output_dir / "multi_condition-1.txt").exists()
+    assert (output_dir / "multi_condition-2.txt").exists()
+    assert (output_dir / "multi_condition-3.txt").exists()
+

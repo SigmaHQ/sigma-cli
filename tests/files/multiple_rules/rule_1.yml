@@ -1,0 +1,12 @@
+title: Test rule 1
+id: 11111111-1111-1111-1111-111111111111
+description: First test rule
+status: stable
+level: high
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\test1.exe'
+  condition: selection
