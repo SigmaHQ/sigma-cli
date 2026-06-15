@@ -68,7 +68,7 @@ def generate_junit_report(results, output_file):
                 failure = ET.SubElement(
                     test_case,
                     "failure",
-                    message=f"{res.get('issue_type')}: {res.get('severity', '').upper()}",
+                    message=f"{res.get('issue_type')}: {(res.get('severity') or 'UNKNOWN').upper()}",
                 )
                 failure.text = res.get("description", "")
 
@@ -173,7 +173,7 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
                         "status": "failed",
                         "issue_type": e.__class__.__name__,
                         "severity": "condition_error",
-                        "description": str(error),
+                        "description": str(e),
                     })
         else:
             check_rules.append(rule)
