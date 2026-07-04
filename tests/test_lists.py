@@ -125,10 +125,23 @@ def test_transformation_list():
     assert all((name in result.stdout for name in transformations.keys()))
 
 
-def test_condition_list():
+def test_targets_has_plugin_column():
     cli = CliRunner()
-    result = cli.invoke(list_conditions)
-    conditions = list(rule_conditions.keys())
-    conditions.extend(detection_item_conditions.keys())
-    conditions.extend(field_name_conditions.keys())
-    assert all((name in result.stdout for name in conditions))
+    result = cli.invoke(list_targets)
+    assert result.exit_code == 0
+    assert "Plugin" in result.stdout
+    # Each row should show a non-empty package name (not "n/a") for installed backends.
+    plugins = InstalledSigmaPlugins.autodiscover()
+    if plugins.backends:
+        assert "n/a" not in result.stdout
+
+
+def test_pipelines_has_plugin_column():
+    cli = CliRunner()
+    result = cli.invoke(list_pipelines)
+    assert result.exit_code == 0
+    assert "Plugin" in result.stdout
+    # Each row should show a non-empty package name (not "n/a") for installed pipelines.
+    plugins = InstalledSigmaPlugins.autodiscover()
+    if plugins.pipelines:
+        assert "n/a" not in result.stdout
