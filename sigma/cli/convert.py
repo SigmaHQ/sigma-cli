@@ -1,4 +1,5 @@
 import json
+import hashlib
 import os
 import pathlib
 import textwrap
@@ -175,8 +176,9 @@ def write_separate_files(
             rule_id = rule.title
         else:
             # This should rarely happen - Sigma rules should have id or title
-            # Use hash of rule string representation as fallback for stability
-            rule_id = f"unknown_{hash(str(rule))}"
+            # Use stable hash of rule string representation for reproducibility
+            rule_hash = hashlib.sha256(str(rule).encode()).hexdigest()[:16]
+            rule_id = f"unknown_{rule_hash}"
             click.echo(f"Warning: Rule has no ID or title, using generated identifier: {rule_id}", err=True)
         
         # Store result for this rule
@@ -227,6 +229,9 @@ def write_separate_files(
                 click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' (source: {rule.source}). Expected str, bytes, or dict. Result will not be written to file.", err=True)
         else:
             # Multiple results, add sequential index to filename
+            # We use enumerate for sequential numbering (1, 2, 3...) instead of the callback index
+            # because the callback index represents the condition number within the rule, which may
+            # not be sequential or may have gaps. We want consistent, predictable filenames.
             for file_idx, (_, result, _) in enumerate(results, start=1):
                 output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, file_idx)
                 output_path.parent.mkdir(parents=True, exist_ok=True)
