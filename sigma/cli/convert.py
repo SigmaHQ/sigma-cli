@@ -184,7 +184,7 @@ def write_separate_files(
         # Store result for this rule
         if rule_id not in rule_results:
             rule_results[rule_id] = []
-        rule_results[rule_id].append((index, result, rule))
+        rule_results[rule_id].append((result, rule))
         
         return result
     
@@ -200,7 +200,7 @@ def write_separate_files(
             continue
         
         # Get the rule from the first result
-        _, _, rule = results[0]
+        _, rule = results[0]
         
         # Get rule source path
         if rule.source and hasattr(rule.source, 'path'):
@@ -212,7 +212,7 @@ def write_separate_files(
         # Write results
         if len(results) == 1:
             # Single result, no index needed
-            _, result, _ = results[0]
+            result, _ = results[0]
             output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, None)
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
@@ -232,7 +232,7 @@ def write_separate_files(
             # We use enumerate for sequential numbering (1, 2, 3...) instead of the callback index
             # because the callback index represents the condition number within the rule, which may
             # not be sequential or may have gaps. We want consistent, predictable filenames.
-            for file_idx, (_, result, _) in enumerate(results, start=1):
+            for file_idx, (result, _) in enumerate(results, start=1):
                 output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, file_idx)
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 
