@@ -168,8 +168,8 @@ def write_separate_files(
         if result is None:
             return result
         
-        # Get rule ID for grouping results
-        rule_id = rule.id if hasattr(rule, 'id') else str(id(rule))
+        # Get rule ID for grouping results - use title as fallback if id is missing
+        rule_id = rule.id if hasattr(rule, 'id') and rule.id else (rule.title if hasattr(rule, 'title') else str(id(rule)))
         
         # Store result for this rule
         if rule_id not in rule_results:
@@ -216,11 +216,11 @@ def write_separate_files(
                 output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
                 files_written += 1
             else:
-                click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for {rule.source}. Expected str, bytes, or dict. Skipping result.", err=True)
+                click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for {rule.source}. Expected str, bytes, or dict. Result will not be written to file.", err=True)
         else:
-            # Multiple results, add index to filename
-            for idx, result, _ in results:
-                output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, idx + 1)
+            # Multiple results, add sequential index to filename
+            for file_idx, (_, result, _) in enumerate(results, start=1):
+                output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, file_idx)
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 
                 if isinstance(result, str):
@@ -233,7 +233,7 @@ def write_separate_files(
                     output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
                     files_written += 1
                 else:
-                    click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for {rule.source}. Expected str, bytes, or dict. Skipping result.", err=True)
+                    click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for {rule.source}. Expected str, bytes, or dict. Result will not be written to file.", err=True)
     
     click.echo(f"Wrote {files_written} file(s) to {output_dir}", err=True)
 
