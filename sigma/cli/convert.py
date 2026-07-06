@@ -175,9 +175,9 @@ def write_separate_files(
             rule_id = rule.title
         else:
             # This should rarely happen - Sigma rules should have id or title
-            # Use object id as last resort, but note it's not stable across runs
-            rule_id = f"unknown_{id(rule)}"
-            click.echo(f"Warning: Rule has no ID or title, using unstable identifier: {rule_id}", err=True)
+            # Use hash of rule string representation as fallback for stability
+            rule_id = f"unknown_{hash(str(rule))}"
+            click.echo(f"Warning: Rule has no ID or title, using generated identifier: {rule_id}", err=True)
         
         # Store result for this rule
         if rule_id not in rule_results:
@@ -224,7 +224,7 @@ def write_separate_files(
                 output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
                 files_written += 1
             else:
-                click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for rule '{rule.title}' (source: {rule.source}). Expected str, bytes, or dict. Result will not be written to file.", err=True)
+                click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' (source: {rule.source}). Expected str, bytes, or dict. Result will not be written to file.", err=True)
         else:
             # Multiple results, add sequential index to filename
             for file_idx, (_, result, _) in enumerate(results, start=1):
@@ -241,7 +241,7 @@ def write_separate_files(
                     output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
                     files_written += 1
                 else:
-                    click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for rule '{rule.title}' result {file_idx}/{len(results)} (source: {rule.source}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
+                    click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' result {file_idx}/{len(results)} (source: {rule.source}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
     
     click.echo(f"Wrote {files_written} file(s) to {output_dir}", err=True)
 
