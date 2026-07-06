@@ -124,7 +124,12 @@ def write_separate_files(
     base_dir: pathlib.Path,
 ):
     """
-    Convert rules and write each to a separate file.
+    Convert rules and write each to a separate file using callback mechanism.
+    
+    This function uses the callback parameter in backend.convert() to write each
+    converted condition to a separate file. This approach works for both regular
+    rules and correlation rules, as the callback receives the rule source information
+    for each converted condition.
     
     Args:
         rule_collection: Collection of Sigma rules to convert
@@ -136,38 +141,56 @@ def write_separate_files(
         encoding: Output encoding
         json_indent: JSON indentation
         base_dir: Base directory to calculate relative paths from
-    
-    Raises:
-        click.UsageError: If the collection contains correlation rules
     """
     output_dir = pathlib.Path(output_dir)
     
-    # Check for correlation rules - they cannot be converted individually
-    # because they reference other rules in the collection
-    for rule in rule_collection.rules:
-        if isinstance(rule, SigmaCorrelationRule):
-            raise click.UsageError(
-                f"Cannot use --output-dir with correlation rules. "
-                f"Correlation rule '{rule.title}' (ID: {rule.id}) references other rules "
-                f"and must be converted as part of the full collection. "
-                f"Use --output instead to write all rules to a single file."
-            )
-    
-    # Track number of files written
+    # Track number of files written and conversion results per rule
     files_written = 0
+    rule_results = {}  # Maps rule ID to list of (index, result) tuples
     
-    # Convert each rule individually
-    for rule in rule_collection.rules:
-        # Create a single-rule collection for this rule
-        single_rule_collection = SigmaCollection([rule])
+    def write_callback(rule, output_format, index, cond, result):
+        """
+        Callback function called for each converted condition.
         
-        # Convert the rule
-        try:
-            result = backend.convert(single_rule_collection, format, correlation_method)
-        except Exception as e:
-            # Skip rules that can't be converted - continue with remaining rules
-            click.echo(f"Warning: Failed to convert {rule.source}: {e}. Skipping rule.", err=True)
+        Args:
+            rule: The Sigma rule being converted (SigmaRule or SigmaCorrelationRule)
+            output_format: The output format
+            index: Index of the condition being converted
+            cond: The condition being converted
+            result: The conversion result
+            
+        Returns:
+            The result unchanged (we just write it to file as a side effect)
+        """
+        nonlocal files_written
+        
+        # Skip None results
+        if result is None:
+            return result
+        
+        # Get rule ID for grouping results
+        rule_id = rule.id if hasattr(rule, 'id') else str(id(rule))
+        
+        # Store result for this rule
+        if rule_id not in rule_results:
+            rule_results[rule_id] = []
+        rule_results[rule_id].append((index, result, rule))
+        
+        return result
+    
+    # Convert the entire collection with the callback
+    try:
+        backend.convert(rule_collection, format, correlation_method, callback=write_callback)
+    except Exception as e:
+        click.echo(f"Warning: Failed to convert rules: {e}", err=True)
+    
+    # Now write the collected results to files
+    for rule_id, results in rule_results.items():
+        if not results:
             continue
+        
+        # Get the rule from the first result
+        _, _, rule = results[0]
         
         # Get rule source path
         if rule.source and hasattr(rule.source, 'path'):
@@ -176,61 +199,41 @@ def write_separate_files(
             # If no source path, use rule ID or title as filename
             rule_source_path = pathlib.Path(f"{rule.id or rule.title}.yml")
         
-        # Handle different result types
-        if isinstance(result, str):
-            # Single string result - write to one file
+        # Write results
+        if len(results) == 1:
+            # Single result, no index needed
+            _, result, _ = results[0]
             output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, None)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(bytes(result, encoding))
-            files_written += 1
             
-        elif isinstance(result, bytes):
-            # Binary result - write to one file
-            output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, None)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(result)
-            files_written += 1
-            
-        elif isinstance(result, list) and all(isinstance(item, str) for item in result):
-            # List of strings - write each to a separate file with index
-            if len(result) == 1:
-                # Single result, no index needed
-                output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, None)
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                output_path.write_bytes(bytes(result[0], encoding))
+            if isinstance(result, str):
+                output_path.write_bytes(bytes(result, encoding))
+                files_written += 1
+            elif isinstance(result, bytes):
+                output_path.write_bytes(result)
+                files_written += 1
+            elif isinstance(result, dict):
+                output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
                 files_written += 1
             else:
-                # Multiple results, add index to filename
-                for idx, item in enumerate(result, start=1):
-                    output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, idx)
-                    output_path.parent.mkdir(parents=True, exist_ok=True)
-                    output_path.write_bytes(bytes(item, encoding))
-                    files_written += 1
-                    
-        elif isinstance(result, list) and all(isinstance(item, dict) for item in result):
-            # List of dicts - write each to a separate file with index as JSON
-            if len(result) == 1:
-                # Single result, no index needed
-                output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, None)
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                output_path.write_bytes(bytes(json.dumps(result[0], indent=json_indent), encoding))
-                files_written += 1
-            else:
-                # Multiple results, add index to filename
-                for idx, item in enumerate(result, start=1):
-                    output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, idx)
-                    output_path.parent.mkdir(parents=True, exist_ok=True)
-                    output_path.write_bytes(bytes(json.dumps(item, indent=json_indent), encoding))
-                    files_written += 1
-                    
-        elif isinstance(result, dict):
-            # Dict result - write as JSON
-            output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, None)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
-            files_written += 1
+                click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for {rule.source}. Expected str, bytes, or dict. Skipping result.", err=True)
         else:
-            click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for {rule.source}. Expected str, bytes, list, or dict. Skipping rule.", err=True)
+            # Multiple results, add index to filename
+            for idx, result, _ in results:
+                output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, idx + 1)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                if isinstance(result, str):
+                    output_path.write_bytes(bytes(result, encoding))
+                    files_written += 1
+                elif isinstance(result, bytes):
+                    output_path.write_bytes(result)
+                    files_written += 1
+                elif isinstance(result, dict):
+                    output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
+                    files_written += 1
+                else:
+                    click.echo(f"Warning: Backend returned unexpected format {str(type(result))} for {rule.source}. Expected str, bytes, or dict. Skipping result.", err=True)
     
     click.echo(f"Wrote {files_written} file(s) to {output_dir}", err=True)
 

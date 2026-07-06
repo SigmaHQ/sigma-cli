@@ -410,7 +410,7 @@ def test_convert_output_dir_with_index(tmp_path):
 
 
 def test_convert_output_dir_with_correlation_rules(tmp_path):
-    """Test that correlation rules are not supported with --output-dir."""
+    """Test that correlation rules are supported with --output-dir using callback mechanism."""
     cli = CliRunner()
     output_dir = tmp_path / "output"
     result = cli.invoke(
@@ -425,9 +425,15 @@ def test_convert_output_dir_with_correlation_rules(tmp_path):
             "tests/files/sigma_correlation_rules.yml",
         ],
     )
-    # Should fail with a clear error message
-    assert result.exit_code != 0
-    assert "correlation" in result.stderr.lower() or "collection" in result.stderr.lower()
+    # Should succeed with correlation rules now
+    assert result.exit_code == 0
+    
+    # Verify that output files were created
+    assert output_dir.exists()
+    output_files = list(output_dir.glob("*.txt"))
+    # We should have files for base rules and correlation rules
+    # The exact number depends on how the backend handles correlation rules
+    assert len(output_files) > 0, f"Expected output files in {output_dir}, but found none"
 
 
 def test_convert_output_dir_with_filter(tmp_path):
