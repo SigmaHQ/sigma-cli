@@ -1,4 +1,6 @@
 import json
+import hashlib
+import os
 import pathlib
 import textwrap
 from typing import Sequence
@@ -6,6 +8,8 @@ from typing import Sequence
 import click
 
 from sigma.cli.rules import load_rules, check_rule_errors
+from sigma.collection import SigmaCollection
+from sigma.correlations import SigmaCorrelationRule
 from sigma.conversion.base import Backend
 from sigma.exceptions import (
     SigmaError,
@@ -65,6 +69,186 @@ class ChoiceWithPluginHint(click.Choice):
             param,
             ctx,
         )
+
+
+def render_output_filename(template: str, rule_source_path: pathlib.Path, base_dir: pathlib.Path, index: int = None) -> pathlib.Path:
+    """
+    Render output filename template with available variables.
+    
+    Args:
+        template: Template string with variables {path}, {stem}, {index}
+        rule_source_path: Path to the source rule file
+        base_dir: Base directory to calculate relative path from
+        index: Query index for rules that generate multiple queries (optional)
+    
+    Returns:
+        Path object for the output file
+    """
+    # Calculate relative path from base directory
+    try:
+        relative_path = rule_source_path.relative_to(base_dir)
+    except ValueError:
+        # If rule_source_path is not relative to base_dir, use the rule path as-is
+        relative_path = rule_source_path
+    
+    # Get parent directory path (without filename)
+    if relative_path.parent != pathlib.Path("."):
+        path_component = str(relative_path.parent)
+    else:
+        path_component = ""
+    
+    # Get filename stem (without extension)
+    stem = rule_source_path.stem
+    
+    # Render template
+    rendered = template.format(
+        path=path_component,
+        stem=stem,
+        index=index if index is not None else ""
+    )
+    
+    # Clean up any double slashes or empty path components
+    rendered = rendered.replace("//", "/").strip("/")
+    
+    return pathlib.Path(rendered)
+
+
+def write_separate_files(
+    rule_collection: SigmaCollection,
+    backend: Backend,
+    output_dir: pathlib.Path,
+    filename_template: str,
+    format: str,
+    correlation_method: str,
+    encoding: str,
+    json_indent: int,
+    base_dir: pathlib.Path,
+):
+    """
+    Convert rules and write each to a separate file using callback mechanism.
+    
+    This function uses the callback parameter in backend.convert() to write each
+    converted condition to a separate file. This approach works for both regular
+    rules and correlation rules, as the callback receives the rule source information
+    for each converted condition.
+    
+    Args:
+        rule_collection: Collection of Sigma rules to convert
+        backend: Backend instance for conversion
+        output_dir: Directory to write output files
+        filename_template: Template for output filenames
+        format: Output format
+        correlation_method: Correlation method
+        encoding: Output encoding
+        json_indent: JSON indentation
+        base_dir: Base directory to calculate relative paths from
+    """
+    output_dir = pathlib.Path(output_dir)
+    
+    # Track number of files written and conversion results per rule
+    files_written = 0
+    rule_results = {}  # Maps rule ID to list of (index, result) tuples
+    
+    def write_callback(rule, output_format, index, cond, result):
+        """
+        Callback function called for each converted condition.
+        
+        Args:
+            rule: The Sigma rule being converted (SigmaRule or SigmaCorrelationRule)
+            output_format: The output format
+            index: Index of the condition being converted
+            cond: The condition being converted
+            result: The conversion result
+            
+        Returns:
+            The result unchanged (we just write it to file as a side effect)
+        """
+        nonlocal files_written
+        
+        # Skip None results
+        if result is None:
+            return result
+        
+        # Get rule ID for grouping results - Sigma rules should always have an id or title
+        if hasattr(rule, 'id') and rule.id:
+            rule_id = rule.id
+        elif hasattr(rule, 'title') and rule.title:
+            rule_id = rule.title
+        else:
+            # This should rarely happen - Sigma rules should have id or title
+            # Use stable hash of rule string representation for reproducibility
+            rule_hash = hashlib.sha256(str(rule).encode()).hexdigest()[:16]
+            rule_id = f"unknown_{rule_hash}"
+            click.echo(f"Warning: Rule has no ID or title, using generated identifier: {rule_id}", err=True)
+        
+        # Store result for this rule
+        if rule_id not in rule_results:
+            rule_results[rule_id] = []
+        rule_results[rule_id].append((result, rule))
+        
+        return result
+    
+    # Convert the entire collection with the callback
+    try:
+        backend.convert(rule_collection, format, correlation_method, callback=write_callback)
+    except Exception as e:
+        click.echo(f"Warning: Failed to convert rules: {e}", err=True)
+    
+    # Now write the collected results to files
+    for rule_id, results in rule_results.items():
+        if not results:
+            continue
+        
+        # Get the rule from the first result
+        _, rule = results[0]
+        
+        # Get rule source path
+        if rule.source and hasattr(rule.source, 'path'):
+            rule_source_path = pathlib.Path(rule.source.path)
+        else:
+            # If no source path, use rule ID or title as filename
+            rule_source_path = pathlib.Path(f"{rule.id or rule.title}.yml")
+        
+        # Write results
+        if len(results) == 1:
+            # Single result, no index needed
+            result, _ = results[0]
+            output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, None)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            if isinstance(result, str):
+                output_path.write_bytes(bytes(result, encoding))
+                files_written += 1
+            elif isinstance(result, bytes):
+                output_path.write_bytes(result)
+                files_written += 1
+            elif isinstance(result, dict):
+                output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
+                files_written += 1
+            else:
+                click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' (source: {rule.source}). Expected str, bytes, or dict. Result will not be written to file.", err=True)
+        else:
+            # Multiple results, add sequential index to filename
+            # We use enumerate for sequential numbering (1, 2, 3...) instead of the callback index
+            # because the callback index represents the condition number within the rule, which may
+            # not be sequential or may have gaps. We want consistent, predictable filenames.
+            for file_idx, (result, _) in enumerate(results, start=1):
+                output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, file_idx)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                if isinstance(result, str):
+                    output_path.write_bytes(bytes(result, encoding))
+                    files_written += 1
+                elif isinstance(result, bytes):
+                    output_path.write_bytes(result)
+                    files_written += 1
+                elif isinstance(result, dict):
+                    output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
+                    files_written += 1
+                else:
+                    click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' result {file_idx}/{len(results)} (source: {rule.source}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
+    
+    click.echo(f"Wrote {files_written} file(s) to {output_dir}", err=True)
 
 
 @click.command()
@@ -133,7 +317,25 @@ class ChoiceWithPluginHint(click.Choice):
     type=click.File("wb"),
     default="-",
     show_default=True,
-    help="Write result to specified file. '-' writes to standard output.",
+    help="Write result to specified file. '-' writes to standard output. Mutually exclusive with --output-dir.",
+)
+@click.option(
+    "--output-dir",
+    "-od",
+    type=click.Path(path_type=pathlib.Path),
+    default=None,
+    help="Write individual converted rules to separate files in this directory. Mutually exclusive with --output.",
+)
+@click.option(
+    "--output-filename-template",
+    "-ot",
+    type=str,
+    default="{stem}.txt",
+    show_default=True,
+    help="Template for output filenames when using --output-dir. "
+    "Available variables: {path} (relative source path), {stem} (filename without extension), "
+    "{index} (query index for rules that generate multiple queries). "
+    "Example: '{path}/{stem}-{index}.txt' or 'converted/{stem}.esql'",
 )
 @click.option(
     "--encoding",
@@ -193,6 +395,8 @@ def convert(
     filter,
     skip_unsupported,
     output,
+    output_dir,
+    output_filename_template,
     encoding,
     json_indent,
     backend_option,
@@ -206,6 +410,12 @@ def convert(
     Convert Sigma rules into queries. INPUT can be multiple files or directories. This command automatically recurses
     into directories and converts all files matching the pattern in --file-pattern.
     """
+
+    # Validate mutually exclusive options
+    if output_dir is not None and hasattr(output, 'name') and output.name != "<stdout>":
+        raise click.UsageError(
+            "--output/-o and --output-dir/-od are mutually exclusive. Use --output for single file output or --output-dir for separate file outputs."
+        )
 
     # Check if pipeline is required
     if backends[target].requires_pipeline and pipeline == () and not without_pipeline:
@@ -314,42 +524,69 @@ def convert(
     try:
         rule_collection = load_rules(input + filter, file_pattern)
         check_rule_errors(rule_collection)
-        result = backend.convert(rule_collection, format, correlation_method)
-        if isinstance(result, str):  # String result
-            click.echo(bytes(result, encoding), output)
-        elif isinstance(result, bytes):  # Bytes result: only allow to write it to file.
-            if output.isatty():
-                raise click.UsageError(
-                    "Backend returns binary output. Please provide output file with --output/-o."
-                )
-            else:
-                click.echo(result, output)
-        elif isinstance(result, list) and all(
-            (  # List of strings Concatenate with newlines in between.
-                isinstance(item, str) for item in result
+        
+        # Check if we should write to separate files
+        if output_dir is not None:
+            # Determine base directory for relative path calculation
+            # Use the first input path as base directory
+            base_dir = pathlib.Path.cwd()
+            if input and input[0] != pathlib.Path("-"):
+                first_input = pathlib.Path(input[0])
+                if first_input.is_dir():
+                    base_dir = first_input
+                else:
+                    base_dir = first_input.parent
+            
+            # Write separate files
+            write_separate_files(
+                rule_collection=rule_collection,
+                backend=backend,
+                output_dir=output_dir,
+                filename_template=output_filename_template,
+                format=format,
+                correlation_method=correlation_method,
+                encoding=encoding,
+                json_indent=json_indent,
+                base_dir=base_dir,
             )
-        ):
-            click.echo(bytes("\n\n".join(result), encoding), output)
-        elif isinstance(result, list) and all(
-            (  # List of dicts: concatenate with newline and render each result als JSON.
-                isinstance(item, dict) for item in result
-            )
-        ):
-            click.echo(
-                bytes(
-                    "\n".join(
-                        (json.dumps(item, indent=json_indent) for item in result)
-                    ),
-                    encoding,
-                ),
-                output,
-            )
-        elif isinstance(result, dict):
-            click.echo(bytes(json.dumps(result, indent=json_indent), encoding))
         else:
-            raise click.ClickException(
-                f"Backend returned unexpected format {str(type(result))}"
-            )
+            # Original behavior: convert entire collection and write to single output
+            result = backend.convert(rule_collection, format, correlation_method)
+            if isinstance(result, str):  # String result
+                click.echo(bytes(result, encoding), output)
+            elif isinstance(result, bytes):  # Bytes result: only allow to write it to file.
+                if output.isatty():
+                    raise click.UsageError(
+                        "Backend returns binary output. Please provide output file with --output/-o."
+                    )
+                else:
+                    click.echo(result, output)
+            elif isinstance(result, list) and all(
+                (  # List of strings Concatenate with newlines in between.
+                    isinstance(item, str) for item in result
+                )
+            ):
+                click.echo(bytes("\n\n".join(result), encoding), output)
+            elif isinstance(result, list) and all(
+                (  # List of dicts: concatenate with newline and render each result als JSON.
+                    isinstance(item, dict) for item in result
+                )
+            ):
+                click.echo(
+                    bytes(
+                        "\n".join(
+                            (json.dumps(item, indent=json_indent) for item in result)
+                        ),
+                        encoding,
+                    ),
+                    output,
+                )
+            elif isinstance(result, dict):
+                click.echo(bytes(json.dumps(result, indent=json_indent), encoding))
+            else:
+                raise click.ClickException(
+                    f"Backend returned unexpected format {str(type(result))}"
+                )
     except SigmaError as e:
         if verbose:
             click.echo('Error while converting')

@@ -1,0 +1,12 @@
+title: Test rule 2
+id: 22222222-2222-2222-2222-222222222222
+description: Second test rule
+status: stable
+level: medium
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\test2.exe'
+  condition: selection
