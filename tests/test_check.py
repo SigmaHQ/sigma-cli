@@ -1,6 +1,9 @@
 from click.testing import CliRunner
 
 from sigma.cli.check import check
+import xml.etree.ElementTree as ET
+from sigma.cli.check import generate_junit_report
+import pathlib
 
 
 def test_check_help():
@@ -88,3 +91,61 @@ def test_check_exclude():
     assert "Invalid validators name" in result.stdout
     assert "myvalidator" in result.stdout
     assert "Check failure" in result.stdout
+
+
+def test_generate_junit_report_writes_file(tmp_path):
+    # Prepare sample results with one failed and one passed test
+    results = [
+        {
+            "rule_name": "rule_one",
+            "file_path": "tests/files/valid/sigma_rule.yml",
+            "status": "failed",
+            "issue_type": "TestIssue",
+            "severity": "high",
+            "description": "Something went wrong",
+        },
+        {
+            "rule_name": "rule_two",
+            "file_path": "tests/files/valid/sigma_rule.yml",
+            "status": "passed",
+            "issue_type": "Validation Success",
+            "severity": "ok",
+            "description": "All good",
+        },
+    ]
+
+    out = tmp_path / "junit.xml"
+    generate_junit_report(results, str(out))
+
+    # Ensure file exists and is valid XML with expected structure
+    assert out.exists()
+    tree = ET.parse(str(out))
+    root = tree.getroot()
+    assert root.tag == "testsuites"
+
+    suites = {ts.get("name"): ts for ts in root.findall("testsuite")}
+    assert "TestIssue" in suites
+    assert "Validation Success" in suites
+
+    test_suite = suites["TestIssue"]
+    assert test_suite.get("tests") == "1"
+    assert test_suite.get("failures") == "1"
+
+    # Check testcase contains the icon for high severity (🔴)
+    testcase = test_suite.find("testcase")
+    assert testcase is not None
+    assert testcase.get("name").startswith("🔴 ")
+
+    failure = testcase.find("failure")
+    assert failure is not None
+    assert failure.get("message") == "TestIssue: HIGH"
+
+
+def test_check_cli_generates_junitxml(tmp_path):
+    cli = CliRunner()
+    out = tmp_path / "report.xml"
+    result = cli.invoke(check, ["--junitxml", str(out), "tests/files/valid"])
+    assert result.exit_code == 0
+    assert out.exists()
+    tree = ET.parse(str(out))
+    assert tree.getroot().tag == "testsuites"
