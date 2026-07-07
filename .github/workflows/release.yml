@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: 'latest'
+          python-version: '3.14'
       - name: Verify versioning
         run: |
           [ "$(poetry version -s)" == "${GITHUB_REF#refs/tags/v}" ]
