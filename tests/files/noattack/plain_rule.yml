@@ -1,0 +1,9 @@
+title: Plain rule without ATT&CK tags
+id: 11111111-2222-3333-4444-555555555555
+status: test
+logsource:
+  category: process_creation
+detection:
+  selection:
+    Image|endswith: '\evil.exe'
+  condition: selection

@@ -153,7 +153,7 @@ def analyze_attack(
                 max_color,
             ],
             "minValue": min_score,
-            "maxValue": max_score or max(scores.values()),
+            "maxValue": max_score if max_score is not None else (max(scores.values()) if scores else 0),
         },
         "techniques": layer_techniques,
     }
