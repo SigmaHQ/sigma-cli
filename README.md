@@ -138,26 +138,31 @@ translated/
 
 ### Integration of Backends and Pipelines
 
-Backends and pipelines can be integrated by adding the corresponding packages as dependency with:
+Sigma CLI automatically discovers installed pySigma backend and processing pipeline plugins.
+Install the plugin package in the same Python environment as Sigma CLI. For plugins listed by
+`sigma plugin list`, use `sigma plugin install <identifier>`.
 
+For a custom plugin package, use the command matching your Sigma CLI installation:
+
+```sh
+# Sigma CLI installed with pip
+python -m pip install <package-name>
+
+# Sigma CLI installed with pipx
+pipx inject sigma-cli <package-name>
+
+# Sigma CLI source checkout managed by Poetry
+poetry add <package-name>
 ```
-poetry add <package name>
-```
 
-A backend has to be added to the `backends` dict in `sigma/cli/backends.py` by creation of a `Backend` named tuple with
-the following parameters:
+Custom plugins provide backend classes under the `sigma.backends` namespace and processing
+pipeline factories under the `sigma.pipelines` namespace. See the
+[pySigma plugin guide](https://sigmahq-pysigma.readthedocs.io/en/latest/guides/plugin_system.html)
+for the package layout and exports. No changes to Sigma CLI's source files are needed.
 
-* The backend class.
-* A display name shown to the user in the targets list (`sigma list targets`).
-* A dict that maps output format names (used in `-f` parameter) to descriptions of the formats that are shown in the
-  format list (`sigma list formats <backend>`). The formats must be supported by the backend!
-
-The dict key is the name used in the `-t` parameter.
-
-A processing pipeline is defined in the `pipelines` variable dict in `sigma/cli/pipelines.py`. The variable contains a
-`ProcessingPipelineResolver` that is instantiated with a dict that maps identifiers that can
-be used in the `-p` parameter to functions that return `ProcessingPipeline` objects. The descriptive text shown in the pipeline list (`sigma list pipelines`) is provided from
-the `name` attribute of the `ProcessingPipeline` object.
+After installation, use `sigma list targets` and `sigma list pipelines` to find the identifiers
+accepted by `sigma convert -t` and `-p`. Use `sigma list formats <backend>` to list the backend's
+output formats for `-f`.
 
 ## Maintainers
 
