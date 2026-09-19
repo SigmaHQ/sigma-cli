@@ -87,6 +87,25 @@ def test_attack_generate_min_color():
     assert "#123456" in result.stdout
 
 
+def test_attack_generate_no_attack_tags():
+    cli = CliRunner()
+    result = cli.invoke(
+        analyze_attack, ["max", "-", "tests/files/noattack"]
+    )
+    assert result.exit_code == 0
+    assert '"maxValue": 0' in result.stdout
+    assert '"techniques": []' in result.stdout
+
+
+def test_attack_generate_max_score_zero():
+    cli = CliRunner()
+    result = cli.invoke(
+        analyze_attack, ["--max-score", "0", "max", "-", "tests/files/valid"]
+    )
+    assert result.exit_code == 0
+    assert '"maxValue": 0' in result.stdout
+
+
 def test_attack_generate_no_subtechniques():
     cli = CliRunner()
     result = cli.invoke(
