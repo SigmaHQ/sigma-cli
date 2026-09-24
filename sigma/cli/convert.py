@@ -1,5 +1,4 @@
 import json
-import hashlib
 import os
 import pathlib
 import textwrap
@@ -147,7 +146,7 @@ def write_separate_files(
     
     # Track number of files written and conversion results per rule
     files_written = 0
-    rule_results = {}  # Maps rule ID to list of (index, result) tuples
+    rule_results = {}  # Maps id() of the rule object to list of (result, rule) tuples
     
     def write_callback(rule, output_format, index, cond, result):
         """
@@ -169,86 +168,94 @@ def write_separate_files(
         if result is None:
             return result
         
-        # Get rule ID for grouping results - Sigma rules should always have an id or title
-        if hasattr(rule, 'id') and rule.id:
-            rule_id = rule.id
-        elif hasattr(rule, 'title') and rule.title:
-            rule_id = rule.title
-        else:
-            # This should rarely happen - Sigma rules should have id or title
-            # Use stable hash of rule string representation for reproducibility
-            rule_hash = hashlib.sha256(str(rule).encode()).hexdigest()[:16]
-            rule_id = f"unknown_{rule_hash}"
-            click.echo(f"Warning: Rule has no ID or title, using generated identifier: {rule_id}", err=True)
-        
-        # Store result for this rule
-        if rule_id not in rule_results:
-            rule_results[rule_id] = []
-        rule_results[rule_id].append((result, rule))
-        
+        # Group results by rule object: ids and titles are not guaranteed to be unique (e.g. two
+        # rules without id sharing a title) and would merge the results of different rules.
+        rule_results.setdefault(id(rule), []).append((result, rule))
+
         return result
-    
+
     # Convert the entire collection with the callback
     try:
         backend.convert(rule_collection, format, correlation_method, callback=write_callback)
     except Exception as e:
         click.echo(f"Warning: Failed to convert rules: {e}", err=True)
     
-    # Now write the collected results to files
-    for rule_id, results in rule_results.items():
-        if not results:
-            continue
-        
+    # Determine the output file of each result. Several results can share a file name, e.g. the
+    # queries of a rule with multiple conditions or of multiple rules contained in one YAML file
+    # if the template doesn't contain {index}.
+    outputs = {}  # Maps normalized output path to list of (output_path, result, rule) tuples
+    for results in rule_results.values():
         # Get the rule from the first result
         _, rule = results[0]
-        
+
         # Get rule source path
         if rule.source and hasattr(rule.source, 'path'):
             rule_source_path = pathlib.Path(rule.source.path)
         else:
             # If no source path, use rule ID or title as filename
             rule_source_path = pathlib.Path(f"{rule.id or rule.title}.yml")
-        
-        # Write results
-        if len(results) == 1:
-            # Single result, no index needed
-            result, _ = results[0]
-            output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, None)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            if isinstance(result, str):
-                output_path.write_bytes(bytes(result, encoding))
-                files_written += 1
-            elif isinstance(result, bytes):
-                output_path.write_bytes(result)
-                files_written += 1
-            elif isinstance(result, dict):
-                output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
-                files_written += 1
-            else:
+
+        # Multiple results get a sequential index (1, 2, 3...) instead of the callback index
+        # because the callback index represents the condition number within the rule, which may
+        # not be sequential or may have gaps. We want consistent, predictable filenames.
+        for file_idx, (result, _) in enumerate(results, start=1):
+            index = file_idx if len(results) > 1 else None
+            if not isinstance(result, (str, bytes, dict)):
                 click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' (source: {rule.source}). Expected str, bytes, or dict. Result will not be written to file.", err=True)
+                continue
+            output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, index)
+            outputs.setdefault(os.path.normcase(os.path.abspath(output_path)), []).append(
+                (output_path, result, rule)
+            )
+
+    def to_bytes(result):
+        if isinstance(result, str):
+            return bytes(result, encoding)
+        elif isinstance(result, bytes):
+            return result
         else:
-            # Multiple results, add sequential index to filename
-            # We use enumerate for sequential numbering (1, 2, 3...) instead of the callback index
-            # because the callback index represents the condition number within the rule, which may
-            # not be sequential or may have gaps. We want consistent, predictable filenames.
-            for file_idx, (result, _) in enumerate(results, start=1):
-                output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, file_idx)
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                
-                if isinstance(result, str):
-                    output_path.write_bytes(bytes(result, encoding))
-                    files_written += 1
-                elif isinstance(result, bytes):
-                    output_path.write_bytes(result)
-                    files_written += 1
-                elif isinstance(result, dict):
-                    output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
-                    files_written += 1
-                else:
-                    click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' result {file_idx}/{len(results)} (source: {rule.source}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
-    
+            return bytes(json.dumps(result, indent=json_indent), encoding)
+
+    # Write each output file once. Results of the same source file are joined like in single
+    # file output, results of different source files (or binary results) collide: only the
+    # first one is written, the others are reported and not silently overwritten.
+    collisions = 0
+    for items in outputs.values():
+        output_path, first_result, first_rule = items[0]
+        joined, colliding = [items[0]], []
+        for item in items[1:]:
+            _, result, rule = item
+            if (
+                str(rule.source) != str(first_rule.source)
+                or isinstance(result, bytes)
+                or isinstance(first_result, bytes)
+            ):
+                colliding.append(item)
+            else:
+                joined.append(item)
+        if colliding:
+            collisions += len(colliding)
+            click.echo(
+                f"Error: Output file '{output_path}' is already used for rule '{first_rule.title}' "
+                f"(source: {first_rule.source}). Not written: "
+                + ", ".join(f"rule '{rule.title}' (source: {rule.source})" for _, _, rule in colliding),
+                err=True,
+            )
+
+        separator = "\n" if all(isinstance(result, dict) for _, result, _ in joined) else "\n\n"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(
+            bytes(separator, encoding).join(to_bytes(result) for _, result, _ in joined)
+        )
+        files_written += 1
+
     click.echo(f"Wrote {files_written} file(s) to {output_dir}", err=True)
+
+    if collisions:
+        raise click.ClickException(
+            f"{collisions} result(s) not written because their output file names collide. "
+            "Use {path} and/or {index} in --output-filename-template to get distinct file names."
+        )
 
 
 @click.command()
