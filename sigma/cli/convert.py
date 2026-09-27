@@ -569,7 +569,7 @@ def convert(
             # Original behavior: convert entire collection and write to single output
             result = backend.convert(rule_collection, format, correlation_method)
             if isinstance(result, str):  # String result
-                click.echo(bytes(result, encoding), output)
+                click.echo(bytes(result + "\n", encoding), output, nl=False)
             elif isinstance(result, bytes):  # Bytes result: only allow to write it to file.
                 if output.isatty():
                     raise click.UsageError(
@@ -582,7 +582,9 @@ def convert(
                     isinstance(item, str) for item in result
                 )
             ):
-                click.echo(bytes("\n\n".join(result), encoding), output)
+                click.echo(
+                    bytes("\n\n".join(result) + "\n", encoding), output, nl=False
+                )
             elif isinstance(result, list) and all(
                 (  # List of dicts: concatenate with newline and render each result als JSON.
                     isinstance(item, dict) for item in result
@@ -592,13 +594,18 @@ def convert(
                     bytes(
                         "\n".join(
                             (json.dumps(item, indent=json_indent) for item in result)
-                        ),
+                        )
+                        + "\n",
                         encoding,
                     ),
                     output,
+                    nl=False,
                 )
             elif isinstance(result, dict):
-                click.echo(bytes(json.dumps(result, indent=json_indent), encoding))
+                click.echo(
+                    bytes(json.dumps(result, indent=json_indent) + "\n", encoding),
+                    nl=False,
+                )
             else:
                 raise click.ClickException(
                     f"Backend returned unexpected format {str(type(result))}"
