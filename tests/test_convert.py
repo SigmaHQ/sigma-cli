@@ -494,9 +494,9 @@ def test_convert_output_dir_conversion_error_fails_and_continues(tmp_path):
         convert,
         ["-t", "text_query_test", "--output-dir", str(output_dir), str(input_dir)],
     )
-    assert result.exit_code == 1
-    assert "a_unconvertible.yml" in result.output
-    assert "1 rule(s) failed to convert" in result.output
+assert result.exit_code == 1
+assert "a_unconvertible.yml" in result.stderr
+assert "1 rule(s) failed to convert" in result.stderr
     assert not (output_dir / "a_unconvertible.txt").exists()
     assert (output_dir / "b_rule.txt").exists()
 
