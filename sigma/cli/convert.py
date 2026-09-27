@@ -572,7 +572,7 @@ def convert(
                     output,
                 )
             elif isinstance(result, dict):
-                click.echo(bytes(json.dumps(result, indent=json_indent), encoding))
+                click.echo(bytes(json.dumps(result, indent=json_indent), encoding), output)
             else:
                 raise click.ClickException(
                     f"Backend returned unexpected format {str(type(result))}"
