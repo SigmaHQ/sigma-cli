@@ -135,15 +135,29 @@ def show_plugin(uuid: bool, plugin_identifier: str):
 def install_plugin(
     uuid: bool, compatibility_check: bool, check_pysigma: bool, plugin_identifiers: List[str]
 ):
-    for plugin_identifier in plugin_identifiers:
-        plugin = get_plugin(uuid, plugin_identifier)
-        if not compatibility_check or plugin.is_compatible():
-            plugin.install()
-            click.echo(f"Successfully installed plugin '{plugin_identifier}'")
-        else:
+    # Resolve and check all plugins before installing any of them, so an incompatible plugin
+    # doesn't leave the plugins given before it installed.
+    plugins = [
+        (plugin_identifier, get_plugin(uuid, plugin_identifier))
+        for plugin_identifier in plugin_identifiers
+    ]
+    if compatibility_check:
+        incompatible = [
+            plugin_identifier
+            for plugin_identifier, plugin in plugins
+            if not plugin.is_compatible()
+        ]
+        if incompatible:
             raise click.exceptions.ClickException(
-                "Plugin not compatible with installed pySigma version! " + click.style("Use '--force-install' or its shortcut '-f' to install anyway.", fg="green")
+                "Plugin not compatible with installed pySigma version: "
+                + ", ".join(f"'{plugin_identifier}'" for plugin_identifier in incompatible)
+                + "! No plugin was installed. "
+                + click.style("Use '--force-install' or its shortcut '-f' to install anyway.", fg="green")
             )
+
+    for plugin_identifier, plugin in plugins:
+        plugin.install()
+        click.echo(f"Successfully installed plugin '{plugin_identifier}'")
     
     if check_pysigma:
         check_pysigma_command()

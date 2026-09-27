@@ -1,5 +1,6 @@
 from click.testing import CliRunner
 
+import sigma.cli.plugin
 from sigma.cli.plugin import (
     plugin_group,
     list_plugins,
@@ -110,3 +111,53 @@ def test_plugin_uninstall():
     result = cli.invoke(uninstall_plugin, ["splunk"])
     assert result.exit_code == 0
     assert "Successfully uninstalled" in result.output
+
+
+class FakePlugin:
+    def __init__(self, compatible, installed):
+        self.compatible = compatible
+        self.installed = installed
+
+    def is_compatible(self):
+        return self.compatible
+
+    def install(self):
+        self.installed.append(self)
+
+
+def _stub_plugins(monkeypatch, compatibility):
+    installed = []
+    plugins = {
+        identifier: FakePlugin(compatible, installed)
+        for identifier, compatible in compatibility.items()
+    }
+    monkeypatch.setattr(
+        sigma.cli.plugin, "get_plugin", lambda uuid, identifier: plugins[identifier]
+    )
+    monkeypatch.setattr(sigma.cli.plugin, "check_pysigma_command", lambda: None)
+    return plugins, installed
+
+
+def test_plugin_install_incompatible_installs_nothing(monkeypatch):
+    plugins, installed = _stub_plugins(monkeypatch, {"a": True, "b": False})
+    cli = CliRunner()
+    result = cli.invoke(install_plugin, ["a", "b"])
+    assert result.exit_code != 0
+    assert installed == []
+    assert "'b'" in result.output
+
+
+def test_plugin_install_multiple_compatible(monkeypatch):
+    plugins, installed = _stub_plugins(monkeypatch, {"a": True, "b": True})
+    cli = CliRunner()
+    result = cli.invoke(install_plugin, ["a", "b"])
+    assert result.exit_code == 0
+    assert installed == [plugins["a"], plugins["b"]]
+
+
+def test_plugin_install_force_incompatible(monkeypatch):
+    plugins, installed = _stub_plugins(monkeypatch, {"a": True, "b": False})
+    cli = CliRunner()
+    result = cli.invoke(install_plugin, ["-f", "a", "b"])
+    assert result.exit_code == 0
+    assert installed == [plugins["a"], plugins["b"]]
