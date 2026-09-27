@@ -188,12 +188,23 @@ def write_separate_files(
         
         return result
     
-    # Convert the entire collection with the callback
-    try:
-        backend.convert(rule_collection, format, correlation_method, callback=write_callback)
-    except Exception as e:
-        click.echo(f"Warning: Failed to convert rules: {e}", err=True)
-    
+    # Convert rule by rule (mirroring Backend.convert) so that one failing rule neither
+    # aborts the conversion of the remaining rules nor gets silently ignored.
+    failed_rules = []
+    backend.init_processing_pipeline(format)
+    rule_collection.resolve_rule_references()
+    for rule in rule_collection.rules:
+        try:
+            if isinstance(rule, SigmaCorrelationRule):
+                backend.convert_correlation_rule(
+                    rule, format, correlation_method, callback=write_callback
+                )
+            else:
+                backend.convert_rule(rule, format, callback=write_callback)
+        except (SigmaError, NotImplementedError) as e:
+            failed_rules.append((rule, e))
+            click.echo(f"Error: Failed to convert rule {rule.source or rule.title}: {e}", err=True)
+
     # Now write the collected results to files
     for rule_id, results in rule_results.items():
         if not results:
@@ -249,6 +260,11 @@ def write_separate_files(
                     click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' result {file_idx}/{len(results)} (source: {rule.source}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
     
     click.echo(f"Wrote {files_written} file(s) to {output_dir}", err=True)
+
+    if failed_rules:
+        raise click.ClickException(
+            f"{len(failed_rules)} rule(s) failed to convert, see errors above."
+        )
 
 
 @click.command()
