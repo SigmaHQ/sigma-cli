@@ -46,6 +46,15 @@ def test_convert_invalid_rule():
     assert "at least one condition" in result.stderr
 
 
+def test_convert_yaml_syntax_error(tmp_path):
+    (tmp_path / "broken.yml").write_text("title: [unclosed\n")
+    cli = CliRunner()
+    result = cli.invoke(convert, ["-t", "text_query_test", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "Error while converting: YAML syntax error" in result.stderr
+    assert "broken.yml" in result.stderr
+
+
 def test_convert_stdin():
     cli = CliRunner()
     with open("tests/files/valid/sigma_rule.yml", "rt") as yml_file:
