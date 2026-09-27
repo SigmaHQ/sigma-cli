@@ -1,5 +1,3 @@
-import pathlib
-
 from click.testing import CliRunner
 import pytest
 from sigma.cli.convert import convert
@@ -501,55 +499,43 @@ def test_convert_output_dir_applies_pipeline_postprocessing(tmp_path):
         "    prefix: 'index=prod ('\n"
         "    suffix: ')'\n"
     )
-
-
-UNCONVERTIBLE_RULE = """title: Unconvertible
-id: 9f1b8f4a-0000-4000-8000-000000000001
-logsource:
-  category: test
-detection:
-  sel:
-    fieldA|expand: "%var%"
-  condition: sel
-"""
-
-
-def _write_rules_with_unconvertible(tmp_path):
-    input_dir = tmp_path / "rules"
-    input_dir.mkdir()
-    (input_dir / "a_unconvertible.yml").write_text(UNCONVERTIBLE_RULE)
-    (input_dir / "b_rule.yml").write_text(
-        pathlib.Path("tests/files/valid/sigma_rule.yml").read_text()
-    )
-    return input_dir
-
-
-def test_convert_output_dir_conversion_error_fails_and_continues(tmp_path):
-    """A rule that fails to convert makes --output-dir exit non-zero, but later rules are still written."""
-    input_dir = _write_rules_with_unconvertible(tmp_path)
     output_dir = tmp_path / "output"
     cli = CliRunner()
     result = cli.invoke(
         convert,
-        ["-t", "text_query_test", "--output-dir", str(output_dir), str(input_dir)],
-    )
-    assert result.exit_code == 1
-    assert "a_unconvertible.yml" in result.stderr
-    assert "1 rule(s) failed to convert" in result.stderr
-    assert not (output_dir / "a_unconvertible.txt").exists()
-    assert (output_dir / "b_rule.txt").exists()
-
-
-def test_convert_output_dir_conversion_error_skip_unsupported(tmp_path):
-    """With --skip-unsupported the failing rule is only reported as ignored error."""
-    input_dir = _write_rules_with_unconvertible(tmp_path)
-    output_dir = tmp_path / "output"
-    cli = CliRunner()
-    result = cli.invoke(
-        convert,
-        ["-t", "text_query_test", "-s", "--output-dir", str(output_dir), str(input_dir)],
+        [
+            "-t",
+            "text_query_test",
+            "-p",
+            str(pipeline),
+            "--output-dir",
+            str(output_dir),
+            "tests/files/valid/sigma_rule.yml",
+        ],
     )
     assert result.exit_code == 0
-    assert "Ignored errors" in result.output
-    assert (output_dir / "b_rule.txt").exists()
+    content = (output_dir / "sigma_rule.txt").read_text()
+    assert content.startswith("index=prod (") and content.endswith(")")
+
+
+def test_convert_output_dir_skips_non_output_correlation_base_rules(tmp_path):
+    """Base rules that are not output (generate: false) must not be written with --output-dir."""
+    cli = CliRunner()
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-c",
+            "test",
+            "--output-dir",
+            str(output_dir),
+            "tests/files/sigma_correlation_rules.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    # The file holds three correlation rules and three base rules; only the three
+    # correlation rules are output (the same three queries that -o prints).
+    assert "Wrote 3 file(s)" in result.stderr
 

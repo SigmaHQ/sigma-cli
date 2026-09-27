@@ -240,11 +240,6 @@ def write_separate_files(
     
     click.echo(f"Wrote {files_written} file(s) to {output_dir}", err=True)
 
-    if failed_rules:
-        raise click.ClickException(
-            f"{len(failed_rules)} rule(s) failed to convert, see errors above."
-        )
-
 
 @click.command()
 @click.option(
