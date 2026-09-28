@@ -410,7 +410,7 @@ def test_convert_output_dir_with_index(tmp_path):
 
 
 def test_convert_output_dir_with_correlation_rules(tmp_path):
-    """Test that correlation rules are supported with --output-dir using callback mechanism."""
+    """Test that correlation rules are supported with --output-dir."""
     cli = CliRunner()
     output_dir = tmp_path / "output"
     result = cli.invoke(
@@ -431,8 +431,8 @@ def test_convert_output_dir_with_correlation_rules(tmp_path):
     # Verify that output files were created
     assert output_dir.exists()
     output_files = list(output_dir.glob("*.txt"))
-    # We should have files for base rules and correlation rules
-    # The exact number depends on how the backend handles correlation rules
+    # Files are written for the output rules (the correlation rules and base rules with
+    # generate: true), the same rules that are converted without --output-dir
     assert len(output_files) > 0, f"Expected output files in {output_dir}, but found none"
 
 
@@ -460,6 +460,91 @@ def test_convert_output_dir_with_filter(tmp_path):
     # Check that filter was applied
     content = (output_dir / "sigma_rule.txt").read_text()
     assert 'not User startswith "ADM_"' in content
+
+
+def test_convert_output_dir_applies_output_format(tmp_path):
+    """--output-dir must write the query as finalized for the chosen output format."""
+    cli = CliRunner()
+    single = cli.invoke(
+        convert, ["-t", "text_query_test", "-f", "test", "tests/files/valid/sigma_rule.yml"]
+    )
+    assert single.exit_code == 0
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-f",
+            "test",
+            "--output-dir",
+            str(output_dir),
+            "tests/files/valid/sigma_rule.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    content = (output_dir / "sigma_rule.txt").read_text()
+    assert content.startswith("[ ") and content.endswith(" ]")
+    assert content == single.stdout.strip()
+
+
+def test_convert_output_dir_applies_pipeline_postprocessing(tmp_path):
+    """--output-dir must apply query postprocessing items of processing pipelines."""
+    pipeline = tmp_path / "embed.yml"
+    pipeline.write_text(
+        "name: embed\n"
+        "priority: 100\n"
+        "postprocessing:\n"
+        "  - type: embed\n"
+        "    prefix: 'index=prod ('\n"
+        "    suffix: ')'\n"
+    )
+    output_dir = tmp_path / "output"
+    cli = CliRunner()
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-p",
+            str(pipeline),
+            "--output-dir",
+            str(output_dir),
+            "tests/files/valid/sigma_rule.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    content = (output_dir / "sigma_rule.txt").read_text()
+    assert content.startswith("index=prod (") and content.endswith(")")
+
+
+def test_convert_output_dir_skips_non_output_correlation_base_rules(tmp_path):
+    """Base rules that are not output (generate: false) must not be written with --output-dir."""
+    cli = CliRunner()
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-c",
+            "test",
+            "--output-dir",
+            str(output_dir),
+            "tests/files/sigma_correlation_rules.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    # The file holds three correlation rules and three base rules; only the three
+    # correlation rules are output (the same three queries that -o prints). The
+    # template has no {index}, so they share one output file.
+    assert "Wrote 1 file(s)" in result.stderr
+    stdout_result = cli.invoke(
+        convert,
+        ["-t", "text_query_test", "-c", "test", "tests/files/sigma_correlation_rules.yml"],
+    )
+    content = (output_dir / "sigma_correlation_rules.txt").read_text()
+    assert content.strip() == stdout_result.stdout.strip()
 
 
 def _rule_yaml(title, value, rule_id=None):

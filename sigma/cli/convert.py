@@ -11,6 +11,7 @@ from sigma.collection import SigmaCollection
 from sigma.correlations import SigmaCorrelationRule
 from sigma.conversion.base import Backend
 from sigma.exceptions import (
+    SigmaConversionError,
     SigmaError,
     SigmaPipelineNotAllowedForBackendError,
     SigmaPipelineNotFoundError,
@@ -124,13 +125,16 @@ def write_separate_files(
     base_dir: pathlib.Path,
 ):
     """
-    Convert rules and write each to a separate file using callback mechanism.
-    
-    This function uses the callback parameter in backend.convert() to write each
-    converted condition to a separate file. This approach works for both regular
-    rules and correlation rules, as the callback receives the rule source information
-    for each converted condition.
-    
+    Convert rules and write each to a separate file.
+
+    The whole collection is converted with backend.convert() so that rule references
+    (e.g. of correlation rules) are resolved. Afterwards, the finalized conversion result
+    of each rule that is meant to be output is written to its own file. The per-condition
+    callback of backend.convert() is not used for this, because it is invoked before the
+    query is finalized for the output format and before query postprocessing of the
+    processing pipeline, and it is also invoked for rules that are not output (e.g. base
+    rules of correlation rules).
+
     Args:
         rule_collection: Collection of Sigma rules to convert
         backend: Backend instance for conversion
@@ -147,39 +151,27 @@ def write_separate_files(
     # Track number of files written and conversion results per rule
     files_written = 0
     rule_results = {}  # Maps id() of the rule object to list of (result, rule) tuples
-    
-    def write_callback(rule, output_format, index, cond, result):
-        """
-        Callback function called for each converted condition.
-        
-        Args:
-            rule: The Sigma rule being converted (SigmaRule or SigmaCorrelationRule)
-            output_format: The output format
-            index: Index of the condition being converted
-            cond: The condition being converted
-            result: The conversion result
-            
-        Returns:
-            The result unchanged (we just write it to file as a side effect)
-        """
-        nonlocal files_written
-        
-        # Skip None results
-        if result is None:
-            return result
-        
-        # Group results by rule object: ids and titles are not guaranteed to be unique (e.g. two
-        # rules without id sharing a title) and would merge the results of different rules.
-        rule_results.setdefault(id(rule), []).append((result, rule))
 
-        return result
-
-    # Convert the entire collection with the callback
+    # Convert the entire collection
     try:
-        backend.convert(rule_collection, format, correlation_method, callback=write_callback)
+        backend.convert(rule_collection, format, correlation_method)
     except Exception as e:
         click.echo(f"Warning: Failed to convert rules: {e}", err=True)
-    
+
+    # Collect the finalized conversion results of all rules that are output
+    for rule in rule_collection.get_output_rules():
+        try:
+            results = rule.get_conversion_result()
+        except SigmaConversionError:
+            # Rule was not converted (conversion failed or was aborted)
+            continue
+
+        # Group results by rule object: ids and titles are not guaranteed to be unique (e.g. two
+        # rules without id sharing a title) and would merge the results of different rules.
+        results = [(result, rule) for result in results if result is not None]
+        if results:
+            rule_results[id(rule)] = results
+
     # Determine the output file of each result. Several results can share a file name, e.g. the
     # queries of a rule with multiple conditions or of multiple rules contained in one YAML file
     # if the template doesn't contain {index}.
@@ -195,13 +187,13 @@ def write_separate_files(
             # If no source path, use rule ID or title as filename
             rule_source_path = pathlib.Path(f"{rule.id or rule.title}.yml")
 
-        # Multiple results get a sequential index (1, 2, 3...) instead of the callback index
-        # because the callback index represents the condition number within the rule, which may
-        # not be sequential or may have gaps. We want consistent, predictable filenames.
+        # Multiple results get a sequential index (1, 2, 3...) instead of the condition index
+        # because conditions that produce no query leave gaps. We want consistent, predictable
+        # filenames.
         for file_idx, (result, _) in enumerate(results, start=1):
             index = file_idx if len(results) > 1 else None
             if not isinstance(result, (str, bytes, dict)):
-                click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' (source: {rule.source}). Expected str, bytes, or dict. Result will not be written to file.", err=True)
+                click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' result {file_idx}/{len(results)} (source: {rule.source}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
                 continue
             output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, index)
             outputs.setdefault(os.path.normcase(os.path.abspath(output_path)), []).append(
