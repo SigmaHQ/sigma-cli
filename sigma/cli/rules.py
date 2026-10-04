@@ -1,7 +1,9 @@
 from pathlib import Path
 from sys import stderr
 import click
+import yaml
 from sigma.collection import SigmaCollection
+from sigma.exceptions import SigmaCollectionError
 
 
 def load_rules(input, file_pattern):
@@ -10,27 +12,31 @@ def load_rules(input, file_pattern):
     """
     rule_collection = SigmaCollection([], [])
 
-    for path in list(input):
-        if path == Path("-"):
-            rule_collection = SigmaCollection.merge([
-                rule_collection,
-                SigmaCollection.from_yaml(click.get_text_stream("stdin"))
-            ])
-        else:
-            rule_paths = SigmaCollection.resolve_paths(
-                [path],
-                recursion_pattern="**/" + file_pattern,
-            )
-            with click.progressbar(
-                    list(rule_paths), label="Parsing Sigma rules", file=stderr
-            ) as progress_rule_paths:
+    try:
+        for path in list(input):
+            if path == Path("-"):
                 rule_collection = SigmaCollection.merge([
                     rule_collection,
-                    SigmaCollection.load_ruleset(
-                        progress_rule_paths,
-                        collect_errors=True,
-                    )
+                    SigmaCollection.from_yaml(click.get_text_stream("stdin"))
                 ])
+            else:
+                rule_paths = SigmaCollection.resolve_paths(
+                    [path],
+                    recursion_pattern="**/" + file_pattern,
+                )
+                with click.progressbar(
+                        list(rule_paths), label="Parsing Sigma rules", file=stderr
+                ) as progress_rule_paths:
+                    rule_collection = SigmaCollection.merge([
+                        rule_collection,
+                        SigmaCollection.load_ruleset(
+                            progress_rule_paths,
+                            collect_errors=True,
+                        )
+                    ])
+    except yaml.YAMLError as e:
+        # Report YAML syntax errors like other Sigma errors instead of crashing with a traceback.
+        raise SigmaCollectionError(f"YAML syntax error: {e}") from e
 
     rule_collection.resolve_rule_references()
 

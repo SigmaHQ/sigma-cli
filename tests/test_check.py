@@ -151,6 +151,22 @@ def test_check_cli_generates_junitxml(tmp_path):
     assert tree.getroot().tag == "testsuites"
 
 
+def test_check_yaml_syntax_error_junitxml(tmp_path):
+    """A YAML syntax error is reported as check error and still produces the JUnit report."""
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "broken.yml").write_text("title: [unclosed\n")
+    out = tmp_path / "report.xml"
+    cli = CliRunner()
+    result = cli.invoke(check, ["--junitxml", str(out), str(rules)])
+    assert result.exit_code == 1
+    assert "Check error: YAML syntax error" in result.output
+    assert "broken.yml" in result.output
+    tree = ET.parse(str(out))
+    failures = tree.getroot().findall(".//failure")
+    assert any("YAML syntax error" in (f.text or "") for f in failures)
+
+
 def test_check_unknown_collection_action(tmp_path):
     """Collection-level errors (not attached to any rule) must be reported and fail the check."""
     (tmp_path / "typo.yml").write_text("action: repaet\ntitle: typo in action keyword\n")
