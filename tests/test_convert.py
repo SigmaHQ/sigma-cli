@@ -1,3 +1,4 @@
+import json
 import pathlib
 
 from click.testing import CliRunner
@@ -127,6 +128,26 @@ def test_convert_output_bytes(tmp_path):
     )
     assert result.exit_code == 0
     assert "ParentImage" in open(test_file, "r").read()
+
+
+def test_convert_output_dict_to_file(tmp_path, monkeypatch):
+    """A backend returning a dict must honour --output/-o like all other result types."""
+    monkeypatch.setattr(
+        sigma.backends.test.backend.TextQueryTestBackend,
+        "convert",
+        lambda self, rule_collection, output_format=None, correlation_method=None, callback=None: {
+            "queries": ["ParentImage"]
+        },
+    )
+    cli = CliRunner()
+    test_file = tmp_path / "test.json"
+    result = cli.invoke(
+        convert,
+        ["-t", "text_query_test", "-o", str(test_file), "tests/files/valid"],
+    )
+    assert result.exit_code == 0
+    assert "queries" not in result.stdout
+    assert json.loads(test_file.read_text()) == {"queries": ["ParentImage"]}
 
 
 def test_convert_unknown_backend():
