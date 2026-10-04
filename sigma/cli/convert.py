@@ -152,11 +152,21 @@ def write_separate_files(
     files_written = 0
     rule_results = {}  # Maps id() of the rule object to list of (result, rule) tuples
 
-    # Convert the entire collection
-    try:
-        backend.convert(rule_collection, format, correlation_method)
-    except Exception as e:
-        click.echo(f"Warning: Failed to convert rules: {e}", err=True)
+    # Convert rule by rule (mirroring Backend.convert) so that one failing rule neither
+    # aborts the conversion of the remaining rules nor gets silently ignored. Each
+    # successful conversion stores the finalized result on the rule, collected below.
+    failed_rules = []
+    backend.init_processing_pipeline(format)
+    rule_collection.resolve_rule_references()
+    for rule in rule_collection.rules:
+        try:
+            if isinstance(rule, SigmaCorrelationRule):
+                backend.convert_correlation_rule(rule, format, correlation_method)
+            else:
+                backend.convert_rule(rule, format)
+        except (SigmaError, NotImplementedError) as e:
+            failed_rules.append((rule, e))
+            click.echo(f"Error: Failed to convert rule {rule.source or rule.title}: {e}", err=True)
 
     # Collect the finalized conversion results of all rules that are output
     for rule in rule_collection.get_output_rules():
@@ -247,6 +257,10 @@ def write_separate_files(
         raise click.ClickException(
             f"{collisions} result(s) not written because their output file names collide. "
             "Use {path} and/or {index} in --output-filename-template to get distinct file names."
+        )
+    if failed_rules:
+        raise click.ClickException(
+            f"{len(failed_rules)} rule(s) failed to convert, see errors above."
         )
 
 

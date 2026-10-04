@@ -172,6 +172,28 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
                     })
         else:
             check_rules.append(rule)
+
+    # Errors that are not attached to any loaded rule, e.g. an unknown collection action or
+    # an invalid filter (filters are kept in rule_collection.filters, not in .rules).
+    rule_error_ids = {
+        id(error) for rule in rule_collection.rules for error in rule.errors
+    }
+    for error in rule_collection.errors:
+        if id(error) in rule_error_ids:
+            continue
+        if first_error:
+            click.echo("=== Sigma Rule Errors ===")
+            first_error = False
+        click.echo(error)
+        rule_errors.update((error.__class__.__name__,))
+        if junit_results is not None:
+            error_type = error.__class__.__name__
+            source = getattr(error, "source", None)
+            file_path = str(source) if source else "unknown"
+            junit_results.append({
+                "rule_name": file_path, "file_path": file_path, "status": "failed",
+                "issue_type": error_type, "severity": "error", "description": str(error)
+            })
     return check_rules
 
 @click.command()
