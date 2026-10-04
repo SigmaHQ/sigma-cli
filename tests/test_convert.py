@@ -538,8 +538,108 @@ def test_convert_output_dir_skips_non_output_correlation_base_rules(tmp_path):
     )
     assert result.exit_code == 0
     # The file holds three correlation rules and three base rules; only the three
-    # correlation rules are output (the same three queries that -o prints).
-    assert "Wrote 3 file(s)" in result.stderr
+    # correlation rules are output (the same three queries that -o prints). The
+    # template has no {index}, so they share one output file.
+    assert "Wrote 1 file(s)" in result.stderr
+    stdout_result = cli.invoke(
+        convert,
+        ["-t", "text_query_test", "-c", "test", "tests/files/sigma_correlation_rules.yml"],
+    )
+    content = (output_dir / "sigma_correlation_rules.txt").read_text()
+    assert content.strip() == stdout_result.stdout.strip()
+
+
+def _rule_yaml(title, value, rule_id=None):
+    id_line = f"id: {rule_id}\n" if rule_id else ""
+    return (
+        f"title: {title}\n{id_line}logsource:\n  category: test\n"
+        f"detection:\n  sel:\n    fieldA: {value}\n  condition: sel\n"
+    )
+
+
+def test_convert_output_dir_multiple_queries_without_index(tmp_path):
+    """All queries of a multi-condition rule end up in its file if the template has no {index}."""
+    cli = CliRunner()
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "--output-dir",
+            str(output_dir),
+            "tests/files/multiple_rules/multi_condition.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Wrote 1 file(s)" in result.stderr
+    content = (output_dir / "multi_condition.txt").read_text()
+    for exe in ("first", "second", "third"):
+        assert f"\\{exe}.exe" in content
+
+
+def test_convert_output_dir_same_stem_different_sources(tmp_path):
+    """Rules from different source files mapping to the same output file are not overwritten."""
+    input_dir = tmp_path / "rules"
+    (input_dir / "a").mkdir(parents=True)
+    (input_dir / "b").mkdir()
+    (input_dir / "a" / "proc.yml").write_text(
+        _rule_yaml("Proc A", "value_a", "11111111-0000-4000-8000-000000000001")
+    )
+    (input_dir / "b" / "proc.yml").write_text(
+        _rule_yaml("Proc B", "value_b", "11111111-0000-4000-8000-000000000002")
+    )
+    output_dir = tmp_path / "output"
+    cli = CliRunner()
+    result = cli.invoke(
+        convert,
+        ["-t", "text_query_test", "--output-dir", str(output_dir), str(input_dir)],
+    )
+    assert result.exit_code == 1
+    assert "Wrote 1 file(s)" in result.stderr
+    assert "1 result(s) not written" in result.stderr
+    assert [p.name for p in output_dir.iterdir()] == ["proc.txt"]
+    content = (output_dir / "proc.txt").read_text()
+    assert ("value_a" in content) != ("value_b" in content)
+
+    # With {path} in the template both are written.
+    output_dir = tmp_path / "output_path"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "--output-dir",
+            str(output_dir),
+            "--output-filename-template",
+            "{path}/{stem}.txt",
+            str(input_dir),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Wrote 2 file(s)" in result.stderr
+    assert "value_a" in (output_dir / "a" / "proc.txt").read_text()
+    assert "value_b" in (output_dir / "b" / "proc.txt").read_text()
+
+
+def test_convert_output_dir_rules_without_id_same_title(tmp_path):
+    """Rules without id sharing a title are distinct rules and written to their own files."""
+    input_dir = tmp_path / "rules"
+    input_dir.mkdir()
+    (input_dir / "one.yml").write_text(_rule_yaml("Same title", "value_one"))
+    (input_dir / "two.yml").write_text(_rule_yaml("Same title", "value_two"))
+    output_dir = tmp_path / "output"
+    cli = CliRunner()
+    result = cli.invoke(
+        convert,
+        ["-t", "text_query_test", "--output-dir", str(output_dir), str(input_dir)],
+    )
+    assert result.exit_code == 0
+    assert "Wrote 2 file(s)" in result.stderr
+    one = (output_dir / "one.txt").read_text()
+    two = (output_dir / "two.txt").read_text()
+    assert "value_one" in one and "value_two" not in one
+    assert "value_two" in two and "value_one" not in two
 
 
 UNCONVERTIBLE_RULE = """title: Unconvertible
