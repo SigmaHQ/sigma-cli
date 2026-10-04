@@ -12,6 +12,7 @@ from sigma.collection import SigmaCollection
 from sigma.correlations import SigmaCorrelationRule
 from sigma.conversion.base import Backend
 from sigma.exceptions import (
+    SigmaConversionError,
     SigmaError,
     SigmaPipelineNotAllowedForBackendError,
     SigmaPipelineNotFoundError,
@@ -125,13 +126,16 @@ def write_separate_files(
     base_dir: pathlib.Path,
 ):
     """
-    Convert rules and write each to a separate file using callback mechanism.
-    
-    This function uses the callback parameter in backend.convert() to write each
-    converted condition to a separate file. This approach works for both regular
-    rules and correlation rules, as the callback receives the rule source information
-    for each converted condition.
-    
+    Convert rules and write each to a separate file.
+
+    The whole collection is converted with backend.convert() so that rule references
+    (e.g. of correlation rules) are resolved. Afterwards, the finalized conversion result
+    of each rule that is meant to be output is written to its own file. The per-condition
+    callback of backend.convert() is not used for this, because it is invoked before the
+    query is finalized for the output format and before query postprocessing of the
+    processing pipeline, and it is also invoked for rules that are not output (e.g. base
+    rules of correlation rules).
+
     Args:
         rule_collection: Collection of Sigma rules to convert
         backend: Backend instance for conversion
@@ -147,28 +151,32 @@ def write_separate_files(
     
     # Track number of files written and conversion results per rule
     files_written = 0
-    rule_results = {}  # Maps rule ID to list of (index, result) tuples
-    
-    def write_callback(rule, output_format, index, cond, result):
-        """
-        Callback function called for each converted condition.
-        
-        Args:
-            rule: The Sigma rule being converted (SigmaRule or SigmaCorrelationRule)
-            output_format: The output format
-            index: Index of the condition being converted
-            cond: The condition being converted
-            result: The conversion result
-            
-        Returns:
-            The result unchanged (we just write it to file as a side effect)
-        """
-        nonlocal files_written
-        
-        # Skip None results
-        if result is None:
-            return result
-        
+    rule_results = {}  # Maps rule ID to list of (result, rule) tuples
+
+    # Convert rule by rule (mirroring Backend.convert) so that one failing rule neither
+    # aborts the conversion of the remaining rules nor gets silently ignored. Each
+    # successful conversion stores the finalized result on the rule, collected below.
+    failed_rules = []
+    backend.init_processing_pipeline(format)
+    rule_collection.resolve_rule_references()
+    for rule in rule_collection.rules:
+        try:
+            if isinstance(rule, SigmaCorrelationRule):
+                backend.convert_correlation_rule(rule, format, correlation_method)
+            else:
+                backend.convert_rule(rule, format)
+        except (SigmaError, NotImplementedError) as e:
+            failed_rules.append((rule, e))
+            click.echo(f"Error: Failed to convert rule {rule.source or rule.title}: {e}", err=True)
+
+    # Collect the finalized conversion results of all rules that are output
+    for rule in rule_collection.get_output_rules():
+        try:
+            results = rule.get_conversion_result()
+        except SigmaConversionError:
+            # Rule was not converted (conversion failed or was aborted)
+            continue
+
         # Get rule ID for grouping results - Sigma rules should always have an id or title
         if hasattr(rule, 'id') and rule.id:
             rule_id = rule.id
@@ -180,19 +188,11 @@ def write_separate_files(
             rule_hash = hashlib.sha256(str(rule).encode()).hexdigest()[:16]
             rule_id = f"unknown_{rule_hash}"
             click.echo(f"Warning: Rule has no ID or title, using generated identifier: {rule_id}", err=True)
-        
-        # Store result for this rule
-        if rule_id not in rule_results:
-            rule_results[rule_id] = []
-        rule_results[rule_id].append((result, rule))
-        
-        return result
-    
-    # Convert the entire collection with the callback
-    try:
-        backend.convert(rule_collection, format, correlation_method, callback=write_callback)
-    except Exception as e:
-        click.echo(f"Warning: Failed to convert rules: {e}", err=True)
+
+        # Store results for this rule
+        rule_results.setdefault(rule_id, []).extend(
+            (result, rule) for result in results if result is not None
+        )
     
     # Now write the collected results to files
     for rule_id, results in rule_results.items():
@@ -229,9 +229,9 @@ def write_separate_files(
                 click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' (source: {rule.source}). Expected str, bytes, or dict. Result will not be written to file.", err=True)
         else:
             # Multiple results, add sequential index to filename
-            # We use enumerate for sequential numbering (1, 2, 3...) instead of the callback index
-            # because the callback index represents the condition number within the rule, which may
-            # not be sequential or may have gaps. We want consistent, predictable filenames.
+            # We use enumerate for sequential numbering (1, 2, 3...) instead of the condition index
+            # because conditions that produce no query leave gaps. We want consistent, predictable
+            # filenames.
             for file_idx, (result, _) in enumerate(results, start=1):
                 output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, file_idx)
                 output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -249,6 +249,11 @@ def write_separate_files(
                     click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' result {file_idx}/{len(results)} (source: {rule.source}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
     
     click.echo(f"Wrote {files_written} file(s) to {output_dir}", err=True)
+
+    if failed_rules:
+        raise click.ClickException(
+            f"{len(failed_rules)} rule(s) failed to convert, see errors above."
+        )
 
 
 @click.command()

@@ -149,3 +149,54 @@ def test_check_cli_generates_junitxml(tmp_path):
     assert out.exists()
     tree = ET.parse(str(out))
     assert tree.getroot().tag == "testsuites"
+
+
+def test_check_unknown_collection_action(tmp_path):
+    """Collection-level errors (not attached to any rule) must be reported and fail the check."""
+    (tmp_path / "typo.yml").write_text("action: repaet\ntitle: typo in action keyword\n")
+    cli = CliRunner()
+    result = cli.invoke(check, [str(tmp_path)])
+    assert result.exit_code == 1
+    assert "Unknown Sigma collection action 'repaet'" in result.stdout
+    assert "Found 1 errors" in result.stdout
+
+
+def test_check_invalid_filter(tmp_path):
+    """Errors in filters (kept in SigmaCollection.filters, not .rules) must fail the check."""
+    (tmp_path / "filter.yml").write_text(
+        "title: filter with invalid id\n"
+        "id: not-a-uuid\n"
+        "logsource:\n"
+        "  category: test\n"
+        "filter:\n"
+        "  rules: []\n"
+        "  selection:\n"
+        "    User: x\n"
+        "  condition: not selection\n"
+    )
+    cli = CliRunner()
+    result = cli.invoke(check, [str(tmp_path)])
+    assert result.exit_code == 1
+    assert "SigmaIdentifierError" in result.stdout
+    assert "Found 1 errors" in result.stdout
+
+
+def test_check_rule_errors_not_double_counted():
+    """Per-rule errors are also contained in SigmaCollection.errors and must be counted once."""
+    cli = CliRunner()
+    result = cli.invoke(check, ["tests/files/invalid"])
+    assert result.exit_code == 1
+    assert "Found 6 errors, 1 condition errors" in result.stdout
+
+
+def test_check_collection_error_junitxml(tmp_path):
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "typo.yml").write_text("action: repaet\ntitle: typo in action keyword\n")
+    out = tmp_path / "report.xml"
+    cli = CliRunner()
+    result = cli.invoke(check, ["--junitxml", str(out), str(rules)])
+    assert result.exit_code == 1
+    tree = ET.parse(str(out))
+    failures = tree.getroot().findall(".//failure")
+    assert any("repaet" in (f.text or "") + (f.get("message") or "") for f in failures)
