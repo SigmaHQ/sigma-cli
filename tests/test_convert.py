@@ -1,3 +1,6 @@
+import json
+import pathlib
+
 from click.testing import CliRunner
 import pytest
 from sigma.cli.convert import convert
@@ -134,6 +137,26 @@ def test_convert_output_bytes(tmp_path):
     )
     assert result.exit_code == 0
     assert "ParentImage" in open(test_file, "r").read()
+
+
+def test_convert_output_dict_to_file(tmp_path, monkeypatch):
+    """A backend returning a dict must honour --output/-o like all other result types."""
+    monkeypatch.setattr(
+        sigma.backends.test.backend.TextQueryTestBackend,
+        "convert",
+        lambda self, rule_collection, output_format=None, correlation_method=None, callback=None: {
+            "queries": ["ParentImage"]
+        },
+    )
+    cli = CliRunner()
+    test_file = tmp_path / "test.json"
+    result = cli.invoke(
+        convert,
+        ["-t", "text_query_test", "-o", str(test_file), "tests/files/valid"],
+    )
+    assert result.exit_code == 0
+    assert "queries" not in result.stdout
+    assert json.loads(test_file.read_text()) == {"queries": ["ParentImage"]}
 
 
 def test_convert_unknown_backend():
@@ -419,7 +442,7 @@ def test_convert_output_dir_with_index(tmp_path):
 
 
 def test_convert_output_dir_with_correlation_rules(tmp_path):
-    """Test that correlation rules are supported with --output-dir using callback mechanism."""
+    """Test that correlation rules are supported with --output-dir."""
     cli = CliRunner()
     output_dir = tmp_path / "output"
     result = cli.invoke(
@@ -440,8 +463,8 @@ def test_convert_output_dir_with_correlation_rules(tmp_path):
     # Verify that output files were created
     assert output_dir.exists()
     output_files = list(output_dir.glob("*.txt"))
-    # We should have files for base rules and correlation rules
-    # The exact number depends on how the backend handles correlation rules
+    # Files are written for the output rules (the correlation rules and base rules with
+    # generate: true), the same rules that are converted without --output-dir
     assert len(output_files) > 0, f"Expected output files in {output_dir}, but found none"
 
 
@@ -470,3 +493,131 @@ def test_convert_output_dir_with_filter(tmp_path):
     content = (output_dir / "sigma_rule.txt").read_text()
     assert 'not User startswith "ADM_"' in content
 
+
+def test_convert_output_dir_applies_output_format(tmp_path):
+    """--output-dir must write the query as finalized for the chosen output format."""
+    cli = CliRunner()
+    single = cli.invoke(
+        convert, ["-t", "text_query_test", "-f", "test", "tests/files/valid/sigma_rule.yml"]
+    )
+    assert single.exit_code == 0
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-f",
+            "test",
+            "--output-dir",
+            str(output_dir),
+            "tests/files/valid/sigma_rule.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    content = (output_dir / "sigma_rule.txt").read_text()
+    assert content.startswith("[ ") and content.endswith(" ]")
+    assert content == single.stdout.strip()
+
+
+def test_convert_output_dir_applies_pipeline_postprocessing(tmp_path):
+    """--output-dir must apply query postprocessing items of processing pipelines."""
+    pipeline = tmp_path / "embed.yml"
+    pipeline.write_text(
+        "name: embed\n"
+        "priority: 100\n"
+        "postprocessing:\n"
+        "  - type: embed\n"
+        "    prefix: 'index=prod ('\n"
+        "    suffix: ')'\n"
+    )
+    output_dir = tmp_path / "output"
+    cli = CliRunner()
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-p",
+            str(pipeline),
+            "--output-dir",
+            str(output_dir),
+            "tests/files/valid/sigma_rule.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    content = (output_dir / "sigma_rule.txt").read_text()
+    assert content.startswith("index=prod (") and content.endswith(")")
+
+
+def test_convert_output_dir_skips_non_output_correlation_base_rules(tmp_path):
+    """Base rules that are not output (generate: false) must not be written with --output-dir."""
+    cli = CliRunner()
+    output_dir = tmp_path / "output"
+    result = cli.invoke(
+        convert,
+        [
+            "-t",
+            "text_query_test",
+            "-c",
+            "test",
+            "--output-dir",
+            str(output_dir),
+            "tests/files/sigma_correlation_rules.yml",
+        ],
+    )
+    assert result.exit_code == 0
+    # The file holds three correlation rules and three base rules; only the three
+    # correlation rules are output (the same three queries that -o prints).
+    assert "Wrote 3 file(s)" in result.stderr
+
+
+UNCONVERTIBLE_RULE = """title: Unconvertible
+id: 9f1b8f4a-0000-4000-8000-000000000001
+logsource:
+  category: test
+detection:
+  sel:
+    fieldA|expand: "%var%"
+  condition: sel
+"""
+
+
+def _write_rules_with_unconvertible(tmp_path):
+    input_dir = tmp_path / "rules"
+    input_dir.mkdir()
+    (input_dir / "a_unconvertible.yml").write_text(UNCONVERTIBLE_RULE)
+    (input_dir / "b_rule.yml").write_text(
+        pathlib.Path("tests/files/valid/sigma_rule.yml").read_text()
+    )
+    return input_dir
+
+
+def test_convert_output_dir_conversion_error_fails_and_continues(tmp_path):
+    """A rule that fails to convert makes --output-dir exit non-zero, but later rules are still written."""
+    input_dir = _write_rules_with_unconvertible(tmp_path)
+    output_dir = tmp_path / "output"
+    cli = CliRunner()
+    result = cli.invoke(
+        convert,
+        ["-t", "text_query_test", "--output-dir", str(output_dir), str(input_dir)],
+    )
+    assert result.exit_code == 1
+    assert "a_unconvertible.yml" in result.stderr
+    assert "1 rule(s) failed to convert" in result.stderr
+    assert not (output_dir / "a_unconvertible.txt").exists()
+    assert (output_dir / "b_rule.txt").exists()
+
+
+def test_convert_output_dir_conversion_error_skip_unsupported(tmp_path):
+    """With --skip-unsupported the failing rule is only reported as ignored error."""
+    input_dir = _write_rules_with_unconvertible(tmp_path)
+    output_dir = tmp_path / "output"
+    cli = CliRunner()
+    result = cli.invoke(
+        convert,
+        ["-t", "text_query_test", "-s", "--output-dir", str(output_dir), str(input_dir)],
+    )
+    assert result.exit_code == 0
+    assert "Ignored errors" in result.output
+    assert (output_dir / "b_rule.txt").exists()
