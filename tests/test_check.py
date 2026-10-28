@@ -207,35 +207,41 @@ def test_check_collection_error_junitxml(tmp_path):
 # ── Policy / SigmaPolicy option tests ──────────────────────────────────────
 
 def test_check_policy_safe():
+    """--policy safe applies SafePolicy: RE2 engine, template vars and external sources disabled."""
     cli = CliRunner()
     result = cli.invoke(check, ["--policy", "safe", "tests/files/valid"])
     assert result.exit_code == 0
-    assert "0 errors" in result.stdout
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, RE2RegexEngine)
+    assert not _sigma_policy_module.default_policy.allow_template_vars
+    assert not _sigma_policy_module.default_policy.allow_external_sources
 
 
 def test_check_policy_trusted():
+    """--policy trusted applies TrustedPolicy: Python regex engine."""
     cli = CliRunner()
     result = cli.invoke(check, ["--policy", "trusted", "tests/files/valid"])
     assert result.exit_code == 0
-    assert "0 errors" in result.stdout
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, PythonRegexEngine)
 
 
 def test_check_regex_engine_re2():
+    """--regex-engine re2 sets RE2RegexEngine on the applied policy."""
     cli = CliRunner()
     result = cli.invoke(check, ["--regex-engine", "re2", "tests/files/valid"])
     assert result.exit_code == 0
-    assert "0 errors" in result.stdout
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, RE2RegexEngine)
 
 
 def test_check_regex_engine_python():
+    """--regex-engine python sets PythonRegexEngine on the applied policy."""
     cli = CliRunner()
     result = cli.invoke(check, ["--regex-engine", "python", "tests/files/valid"])
     assert result.exit_code == 0
-    assert "0 errors" in result.stdout
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, PythonRegexEngine)
 
 
 def test_check_policy_trusted_overridden_by_regex_engine_re2():
-    """--policy trusted with --regex-engine re2 sets the global default_policy to RE2 engine."""
+    """--policy trusted --regex-engine re2: RE2 engine overrides TrustedPolicy's Python engine."""
     cli = CliRunner()
     result = cli.invoke(check, ["--policy", "trusted", "--regex-engine", "re2", "tests/files/valid"])
     assert result.exit_code == 0

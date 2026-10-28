@@ -4,9 +4,8 @@ import pathlib
 from click.testing import CliRunner
 import pytest
 from sigma.cli.convert import convert
-from sigma.policy import SigmaPolicy
-from sigma.policy.profiles import SafePolicy, TrustedPolicy
 from sigma.policy.regex_engine import PythonRegexEngine, RE2RegexEngine
+import sigma.policy as _sigma_policy_module
 import sigma.backends.test.backend
 
 
@@ -623,63 +622,70 @@ _BASE_CONVERT_ARGS = ["-t", "text_query_test", "-p", "another_test", "--disable-
 
 
 def test_convert_policy_default():
-    """No --policy flag uses pySigma's built-in default without error."""
+    """No --policy flag: SafePolicy (RE2 engine, template vars disabled) is the pySigma default."""
     cli = CliRunner()
     result = cli.invoke(convert, _BASE_CONVERT_ARGS)
     assert result.exit_code == 0
-    assert "ParentImage" in result.stdout
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, RE2RegexEngine)
+    assert not _sigma_policy_module.default_policy.allow_template_vars
+    assert not _sigma_policy_module.default_policy.allow_external_sources
 
 
 def test_convert_policy_safe():
+    """--policy safe applies SafePolicy: RE2 engine, template vars and external sources disabled."""
     cli = CliRunner()
     result = cli.invoke(convert, ["--policy", "safe"] + _BASE_CONVERT_ARGS)
     assert result.exit_code == 0
-    assert "ParentImage" in result.stdout
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, RE2RegexEngine)
+    assert not _sigma_policy_module.default_policy.allow_template_vars
+    assert not _sigma_policy_module.default_policy.allow_external_sources
 
 
 def test_convert_policy_trusted():
+    """--policy trusted applies TrustedPolicy: Python regex engine."""
     cli = CliRunner()
     result = cli.invoke(convert, ["--policy", "trusted"] + _BASE_CONVERT_ARGS)
     assert result.exit_code == 0
-    assert "ParentImage" in result.stdout
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, PythonRegexEngine)
 
 
 def test_convert_regex_engine_re2():
+    """--regex-engine re2 sets RE2RegexEngine on the applied policy."""
     cli = CliRunner()
     result = cli.invoke(convert, ["--regex-engine", "re2"] + _BASE_CONVERT_ARGS)
     assert result.exit_code == 0
-    assert "ParentImage" in result.stdout
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, RE2RegexEngine)
 
 
 def test_convert_regex_engine_python():
+    """--regex-engine python sets PythonRegexEngine on the applied policy."""
     cli = CliRunner()
     result = cli.invoke(convert, ["--regex-engine", "python"] + _BASE_CONVERT_ARGS)
     assert result.exit_code == 0
-    assert "ParentImage" in result.stdout
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, PythonRegexEngine)
 
 
 def test_convert_allow_external_sources():
+    """--allow-external-sources sets allow_external_sources=True on the applied policy."""
     cli = CliRunner()
     result = cli.invoke(convert, ["--allow-external-sources"] + _BASE_CONVERT_ARGS)
     assert result.exit_code == 0
-    assert "ParentImage" in result.stdout
+    assert _sigma_policy_module.default_policy.allow_external_sources
 
 
 def test_convert_policy_with_template_vars():
+    """--policy trusted --enable-template-vars: Python engine and allow_template_vars both set."""
     cli = CliRunner()
     result = cli.invoke(convert, ["--policy", "trusted", "--enable-template-vars"] + _BASE_CONVERT_ARGS)
     assert result.exit_code == 0
-    assert "ParentImage" in result.stdout
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, PythonRegexEngine)
+    assert _sigma_policy_module.default_policy.allow_template_vars
 
 
 def test_convert_policy_safe_overridden_by_regex_engine(monkeypatch):
-    """--policy safe with --regex-engine python results in PythonRegexEngine on the pipeline."""
+    """--policy safe --regex-engine python: Python engine overrides SafePolicy's RE2 on the pipeline."""
     captured = {}
-
-    original_init = sigma.backends.test.backend.TextQueryTestBackend.__init__
-
     import sigma.cli.convert as conv_module
-
     real_resolve = conv_module.pipeline_resolver.resolve
 
     def capturing_resolve(pipeline, target=None):
@@ -695,5 +701,6 @@ def test_convert_policy_safe_overridden_by_regex_engine(monkeypatch):
         ["--policy", "safe", "--regex-engine", "python"] + _BASE_CONVERT_ARGS,
     )
     assert result.exit_code == 0
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, PythonRegexEngine)
     assert isinstance(captured["pipeline"].policy.regex_engine, PythonRegexEngine)
 
