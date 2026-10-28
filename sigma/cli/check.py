@@ -1,4 +1,3 @@
-import dataclasses
 import pathlib
 from collections import Counter
 from sys import stderr
@@ -9,10 +8,7 @@ from dataclasses import fields
 
 import click
 from prettytable import PrettyTable
-import sigma.policy as _sigma_policy_module
-from sigma.policy import SigmaPolicy, default_policy
-from sigma.policy.profiles import SafePolicy, TrustedPolicy
-from sigma.policy.regex_engine import PythonRegexEngine, RE2RegexEngine
+from sigma.cli.pysigma import build_sigma_policy
 
 from sigma.cli.rules import load_rules
 from sigma.exceptions import SigmaConditionError, SigmaError
@@ -287,22 +283,7 @@ def check(
     
     rule_validator = setup_validator(validation_config, exclude)
 
-    # Build SigmaPolicy from optional profile and individual overrides
-    _policy_base = {"safe": SafePolicy, "trusted": TrustedPolicy}.get(policy_profile, default_policy)
-    _policy_overrides: dict = {}
-    if regex_engine == "re2":
-        _policy_overrides["regex_engine"] = RE2RegexEngine()
-    elif regex_engine == "python":
-        _policy_overrides["regex_engine"] = PythonRegexEngine()
-    if enable_template_vars:
-        _policy_overrides["allow_template_vars"] = True
-    if template_vars_path:
-        _policy_overrides["vars_allowed_paths"] = tuple(str(p) for p in template_vars_path)
-    if allow_external_sources:
-        _policy_overrides["allow_external_sources"] = True
-    policy = dataclasses.replace(_policy_base, **_policy_overrides) if _policy_overrides else _policy_base
-    # Global fallback for load_ruleset() which has no policy parameter
-    _sigma_policy_module.default_policy = policy
+    policy = build_sigma_policy(policy_profile, regex_engine, enable_template_vars, template_vars_path, allow_external_sources)
 
     try:
         rule_errors = Counter()
