@@ -18,6 +18,7 @@ from sigma.exceptions import (
     SigmaPipelineNotFoundError,
 )
 from sigma.plugins import InstalledSigmaPlugins
+from sigma.cli.pysigma import build_sigma_policy
 
 plugins = InstalledSigmaPlugins.autodiscover()
 backends = plugins.backends
@@ -365,6 +366,25 @@ def write_separate_files(
     help="Backend-specific options provided as key=value pair.",
 )
 @click.option(
+    "--policy",
+    "policy_profile",
+    type=click.Choice(["safe", "trusted"]),
+    default=None,
+    help="Security policy profile: 'safe' (RE2 regex, restrictive) or 'trusted' (Python regex, permissive). Defaults to the pySigma default policy.",
+)
+@click.option(
+    "--regex-engine",
+    type=click.Choice(["re2", "python"]),
+    default=None,
+    help="Override the regex engine independently of --policy: 're2' (DoS-safe) or 'python' (broader support).",
+)
+@click.option(
+    "--allow-external-sources",
+    is_flag=True,
+    default=False,
+    help="Allow transformations that load data from external sources (files, HTTP, commands).",
+)
+@click.option(
     "--enable-template-vars",
     is_flag=True,
     default=False,
@@ -405,6 +425,9 @@ def convert(
     encoding,
     json_indent,
     backend_option,
+    policy_profile,
+    regex_engine,
+    allow_external_sources,
     enable_template_vars,
     template_vars_path,
     input,
@@ -451,18 +474,15 @@ def convert(
         for k, v in backend_options.items()
     }
 
+    policy = build_sigma_policy(policy_profile, regex_engine, enable_template_vars, template_vars_path, allow_external_sources)
+
     # Initialize processing pipeline and backend
     backend_class = backends[target]
     try:
         processing_pipeline = pipeline_resolver.resolve(
             pipeline, target if pipeline_check else None
         )
-        
-        # Configure template variable settings on the processing pipeline
-        if enable_template_vars:
-            processing_pipeline.allow_template_vars = True
-        if template_vars_path:
-            processing_pipeline.vars_allowed_paths = [str(p) for p in template_vars_path]
+        processing_pipeline.policy = policy
     except SigmaPipelineNotFoundError as e:
         raise click.UsageError(
             f"The pipeline '{e.spec}' was not found.\n"
@@ -527,7 +547,7 @@ def convert(
             )
 
     try:
-        rule_collection = load_rules(input + filter, file_pattern)
+        rule_collection = load_rules(input + filter, file_pattern, policy=policy)
         check_rule_errors(rule_collection)
         
         # Check if we should write to separate files

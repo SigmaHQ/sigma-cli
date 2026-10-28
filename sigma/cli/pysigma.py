@@ -6,6 +6,11 @@ from datetime import datetime
 import click
 from packaging.specifiers import SpecifierSet
 from prettytable import PrettyTable
+import dataclasses
+import sigma.policy as _sigma_policy_module
+from sigma.policy import SigmaPolicy, default_policy
+from sigma.policy.profiles import SafePolicy, TrustedPolicy
+from sigma.policy.regex_engine import PythonRegexEngine, RE2RegexEngine
 
 
 def get_cache_datasets():
@@ -66,6 +71,32 @@ def check_pysigma_version():
     requires_pysgima = get_pysigma_requirement()
     version_specifier = SpecifierSet(requires_pysgima.split(" ")[1][1:-1])
     return importlib.metadata.version("pysigma") in version_specifier
+
+
+def build_sigma_policy(
+    policy_profile: "str | None",
+    regex_engine: "str | None",
+    enable_template_vars: bool,
+    template_vars_path,
+    allow_external_sources: bool,
+) -> SigmaPolicy:
+    base = {"safe": SafePolicy, "trusted": TrustedPolicy}.get(policy_profile, default_policy)
+    overrides: dict = {}
+    if regex_engine == "re2":
+        overrides["regex_engine"] = RE2RegexEngine()
+    elif regex_engine == "python":
+        overrides["regex_engine"] = PythonRegexEngine()
+    if enable_template_vars:
+        overrides["allow_template_vars"] = True
+    if template_vars_path:
+        overrides["vars_allowed_paths"] = tuple(str(p) for p in template_vars_path)
+    if allow_external_sources:
+        overrides["allow_external_sources"] = True
+    policy = dataclasses.replace(base, **overrides) if overrides else base
+    # Global fallback for load_ruleset() which has no policy parameter
+    _sigma_policy_module.default_policy = policy
+    return policy
+
 
 @click.group(
     name="pysigma",

@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 from pathlib import Path
 from sys import stderr
+from typing import TYPE_CHECKING
 import click
 from sigma.collection import SigmaCollection
 
+if TYPE_CHECKING:
+    from sigma.policy import SigmaPolicy
 
-def load_rules(input, file_pattern):
+
+def load_rules(input, file_pattern, policy: "SigmaPolicy | None" = None):
     """
     Load Sigma rules from files or stdin.
     """
@@ -14,7 +20,7 @@ def load_rules(input, file_pattern):
         if path == Path("-"):
             rule_collection = SigmaCollection.merge([
                 rule_collection,
-                SigmaCollection.from_yaml(click.get_text_stream("stdin"))
+                SigmaCollection.from_yaml(click.get_text_stream("stdin"), policy=policy)
             ])
         else:
             rule_paths = SigmaCollection.resolve_paths(
