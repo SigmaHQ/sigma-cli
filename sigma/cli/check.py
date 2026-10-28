@@ -1,3 +1,4 @@
+import dataclasses
 import pathlib
 from collections import Counter
 from sys import stderr
@@ -8,6 +9,10 @@ from dataclasses import fields
 
 import click
 from prettytable import PrettyTable
+import sigma.policy as _sigma_policy_module
+from sigma.policy import SigmaPolicy, default_policy
+from sigma.policy.profiles import SafePolicy, TrustedPolicy
+from sigma.policy.regex_engine import PythonRegexEngine, RE2RegexEngine
 
 from sigma.cli.rules import load_rules
 from sigma.exceptions import SigmaConditionError, SigmaError
@@ -127,8 +132,8 @@ def validate_loaded_rules(check_rules, rule_validator):
     return issues
 
 
-def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_results=None):
-    rule_collection = load_rules(input, file_pattern)
+def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_results=None, policy=None):
+    rule_collection = load_rules(input, file_pattern, policy=policy)
     check_rules = list()
     first_error = True
     for rule in rule_collection.rules:
@@ -198,6 +203,37 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
 
 @click.command()
 @click.option(
+    "--policy",
+    "policy_profile",
+    type=click.Choice(["safe", "trusted"]),
+    default=None,
+    help="Security policy profile: 'safe' (RE2 regex, restrictive) or 'trusted' (Python regex, permissive). Defaults to the pySigma default policy.",
+)
+@click.option(
+    "--regex-engine",
+    type=click.Choice(["re2", "python"]),
+    default=None,
+    help="Override the regex engine independently of --policy: 're2' (DoS-safe) or 'python' (broader support).",
+)
+@click.option(
+    "--allow-external-sources",
+    is_flag=True,
+    default=False,
+    help="Allow transformations that load data from external sources (files, HTTP, commands).",
+)
+@click.option(
+    "--enable-template-vars",
+    is_flag=True,
+    default=False,
+    help="Enable template variable support in processing pipeline. WARNING: This feature can be dangerous and allow arbitrary code execution if used with untrusted Sigma rules.",
+)
+@click.option(
+    "--template-vars-path",
+    multiple=True,
+    type=click.Path(exists=True, path_type=pathlib.Path),
+    help="Allowed paths for template variable expansion. Can be specified multiple times.",
+)
+@click.option(
     "--validation-config",
     "-c",
     type=click.File("r"),
@@ -244,17 +280,35 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
     type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
 )
 def check(
-    input, validation_config, file_pattern, fail_on_error, fail_on_issues, junitxml, exclude
+    input, validation_config, file_pattern, fail_on_error, fail_on_issues, junitxml, exclude,
+    policy_profile, regex_engine, allow_external_sources, enable_template_vars, template_vars_path,
 ):
     """Check Sigma rules for validity and best practices (not yet implemented)."""
     
     rule_validator = setup_validator(validation_config, exclude)
 
+    # Build SigmaPolicy from optional profile and individual overrides
+    _policy_base = {"safe": SafePolicy, "trusted": TrustedPolicy}.get(policy_profile, default_policy)
+    _policy_overrides: dict = {}
+    if regex_engine == "re2":
+        _policy_overrides["regex_engine"] = RE2RegexEngine()
+    elif regex_engine == "python":
+        _policy_overrides["regex_engine"] = PythonRegexEngine()
+    if enable_template_vars:
+        _policy_overrides["allow_template_vars"] = True
+    if template_vars_path:
+        _policy_overrides["vars_allowed_paths"] = tuple(str(p) for p in template_vars_path)
+    if allow_external_sources:
+        _policy_overrides["allow_external_sources"] = True
+    policy = dataclasses.replace(_policy_base, **_policy_overrides) if _policy_overrides else _policy_base
+    # Global fallback for load_ruleset() which has no policy parameter
+    _sigma_policy_module.default_policy = policy
+
     try:
         rule_errors = Counter()
         cond_errors = Counter()
         junit_results = [] if junitxml else None
-        check_rules = load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_results)
+        check_rules = load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_results, policy=policy)
 
         # TODO: From Python 3.10 the commented line below can be used.
         rule_error_count = sum(rule_errors.values())

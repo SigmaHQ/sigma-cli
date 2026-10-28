@@ -18,6 +18,11 @@ from sigma.exceptions import (
     SigmaPipelineNotFoundError,
 )
 from sigma.plugins import InstalledSigmaPlugins
+import dataclasses
+import sigma.policy as _sigma_policy_module
+from sigma.policy import SigmaPolicy, default_policy
+from sigma.policy.profiles import SafePolicy, TrustedPolicy
+from sigma.policy.regex_engine import PythonRegexEngine, RE2RegexEngine
 
 plugins = InstalledSigmaPlugins.autodiscover()
 backends = plugins.backends
@@ -365,6 +370,25 @@ def write_separate_files(
     help="Backend-specific options provided as key=value pair.",
 )
 @click.option(
+    "--policy",
+    "policy_profile",
+    type=click.Choice(["safe", "trusted"]),
+    default=None,
+    help="Security policy profile: 'safe' (RE2 regex, restrictive) or 'trusted' (Python regex, permissive). Defaults to the pySigma default policy.",
+)
+@click.option(
+    "--regex-engine",
+    type=click.Choice(["re2", "python"]),
+    default=None,
+    help="Override the regex engine independently of --policy: 're2' (DoS-safe) or 'python' (broader support).",
+)
+@click.option(
+    "--allow-external-sources",
+    is_flag=True,
+    default=False,
+    help="Allow transformations that load data from external sources (files, HTTP, commands).",
+)
+@click.option(
     "--enable-template-vars",
     is_flag=True,
     default=False,
@@ -405,6 +429,9 @@ def convert(
     encoding,
     json_indent,
     backend_option,
+    policy_profile,
+    regex_engine,
+    allow_external_sources,
     enable_template_vars,
     template_vars_path,
     input,
@@ -451,18 +478,30 @@ def convert(
         for k, v in backend_options.items()
     }
 
+    # Build SigmaPolicy from optional profile and individual overrides
+    _policy_base = {"safe": SafePolicy, "trusted": TrustedPolicy}.get(policy_profile, default_policy)
+    _policy_overrides: dict = {}
+    if regex_engine == "re2":
+        _policy_overrides["regex_engine"] = RE2RegexEngine()
+    elif regex_engine == "python":
+        _policy_overrides["regex_engine"] = PythonRegexEngine()
+    if enable_template_vars:
+        _policy_overrides["allow_template_vars"] = True
+    if template_vars_path:
+        _policy_overrides["vars_allowed_paths"] = tuple(str(p) for p in template_vars_path)
+    if allow_external_sources:
+        _policy_overrides["allow_external_sources"] = True
+    policy = dataclasses.replace(_policy_base, **_policy_overrides) if _policy_overrides else _policy_base
+    # Global fallback for load_ruleset() which has no policy parameter
+    _sigma_policy_module.default_policy = policy
+
     # Initialize processing pipeline and backend
     backend_class = backends[target]
     try:
         processing_pipeline = pipeline_resolver.resolve(
             pipeline, target if pipeline_check else None
         )
-        
-        # Configure template variable settings on the processing pipeline
-        if enable_template_vars:
-            processing_pipeline.allow_template_vars = True
-        if template_vars_path:
-            processing_pipeline.vars_allowed_paths = [str(p) for p in template_vars_path]
+        processing_pipeline.policy = policy
     except SigmaPipelineNotFoundError as e:
         raise click.UsageError(
             f"The pipeline '{e.spec}' was not found.\n"
@@ -527,7 +566,7 @@ def convert(
             )
 
     try:
-        rule_collection = load_rules(input + filter, file_pattern)
+        rule_collection = load_rules(input + filter, file_pattern, policy=policy)
         check_rule_errors(rule_collection)
         
         # Check if we should write to separate files
