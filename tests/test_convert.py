@@ -1,9 +1,10 @@
 import json
 import pathlib
 
+import click
 from click.testing import CliRunner
 import pytest
-from sigma.cli.convert import convert
+from sigma.cli.convert import convert, render_output_filename
 from sigma.policy.regex_engine import PythonRegexEngine, RE2RegexEngine
 import sigma.policy as _sigma_policy_module
 import sigma.backends.test.backend
@@ -704,3 +705,21 @@ def test_convert_policy_safe_overridden_by_regex_engine(monkeypatch):
     assert isinstance(_sigma_policy_module.default_policy.regex_engine, PythonRegexEngine)
     assert isinstance(captured["pipeline"].policy.regex_engine, PythonRegexEngine)
 
+
+def test_render_output_filename_unknown_placeholder():
+    with pytest.raises(click.ClickException) as excinfo:
+        render_output_filename(
+            "{rulename}.txt",
+            pathlib.Path("rules/test.yml"),
+            pathlib.Path("rules"),
+        )
+    assert "rulename" in str(excinfo.value.message)
+    assert "{path}" in str(excinfo.value.message) or "path" in str(excinfo.value.message)
+
+
+def test_render_output_filename_valid_template():
+    assert render_output_filename(
+        "{stem}.txt",
+        pathlib.Path("rules/test.yml"),
+        pathlib.Path("rules"),
+    ) == pathlib.Path("test.txt")
