@@ -7,7 +7,7 @@ from typing import Sequence
 
 import click
 
-from sigma.cli.rules import load_rules, check_rule_errors
+from sigma.cli.rules import escape_control_chars, load_rules, check_rule_errors
 from sigma.collection import SigmaCollection
 from sigma.correlations import SigmaCorrelationRule
 from sigma.conversion.base import Backend
@@ -227,7 +227,7 @@ def write_separate_files(
                 output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
                 files_written += 1
             else:
-                click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' (source: {rule.source}). Expected str, bytes, or dict. Result will not be written to file.", err=True)
+                click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{escape_control_chars(rule.title)}' (source: {escape_control_chars(rule.source)}). Expected str, bytes, or dict. Result will not be written to file.", err=True)
         else:
             # Multiple results, add sequential index to filename
             # We use enumerate for sequential numbering (1, 2, 3...) instead of the condition index
@@ -247,7 +247,7 @@ def write_separate_files(
                     output_path.write_bytes(bytes(json.dumps(result, indent=json_indent), encoding))
                     files_written += 1
                 else:
-                    click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' result {file_idx}/{len(results)} (source: {rule.source}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
+                    click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{escape_control_chars(rule.title)}' result {file_idx}/{len(results)} (source: {escape_control_chars(rule.source)}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
     
     click.echo(f"Wrote {files_written} file(s) to {output_dir}", err=True)
 
@@ -617,15 +617,15 @@ def convert(
             click.echo('Error while converting')
             raise e
         else:
-            raise click.ClickException("Error while converting: " + str(e))
+            raise click.ClickException("Error while converting: " + escape_control_chars(e))
     except NotImplementedError as e:
         if verbose:
             click.echo('Feature required for conversion of Sigma rule is not supported by backend')
             raise e
         else:
-            raise click.ClickException("Feature required for conversion of Sigma rule is not supported by backend: " + str(e))
+            raise click.ClickException("Feature required for conversion of Sigma rule is not supported by backend: " + escape_control_chars(e))
 
     if len(backend.errors) > 0:
         click.echo("\nIgnored errors:", err=True)
         for rule, error in backend.errors:
-            click.echo(f"{str(rule.source)}: {str(error)}", err=True)
+            click.echo(f"{escape_control_chars(rule.source)}: {escape_control_chars(error)}", err=True)

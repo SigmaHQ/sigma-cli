@@ -10,7 +10,7 @@ import click
 from prettytable import PrettyTable
 from sigma.cli.pysigma import build_sigma_policy
 
-from sigma.cli.rules import load_rules
+from sigma.cli.rules import escape_control_chars, load_rules
 from sigma.exceptions import SigmaConditionError, SigmaError
 from sigma.plugins import InstalledSigmaPlugins
 from sigma.validation import SigmaValidator
@@ -141,7 +141,7 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
                 first_error = False
     
             for error in rule.errors:
-                click.echo(error)
+                click.echo(escape_control_chars(error))
                 rule_errors.update((error.__class__.__name__,))
                 if junit_results is not None:
                     # Extract error type dynamically (SigmaParsingError vs SigmaValueError etc.)
@@ -161,7 +161,7 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
             except SigmaConditionError as e:  # Error in condition
                 error = str(e)
                 click.echo(
-                    f"Condition error in { str(condition.source) }:{ error }"
+                    f"Condition error in {escape_control_chars(condition.source)}:{escape_control_chars(error)}"
                 )
                 cond_errors.update((error,))
                 if junit_results is not None:
@@ -303,14 +303,14 @@ def check(
             click.echo("=== Issues ===")
             for issue in issues:
                 # Need to split SigmaValidationIssue __str__
-                formatted_rules_output = ", ".join(
+                formatted_rules_output = escape_control_chars(", ".join(
                     [
                         str(rule_with_issue.source)
                         if rule_with_issue.source is not None
                         else str(rule_with_issue.id) or rule_with_issue.title
                         for rule_with_issue in issue.rules
                     ]
-                )
+                ))
                 if junitxml:
                     for rule in issue.rules:
                         junit_results.append({
@@ -324,7 +324,7 @@ def check(
 
                 additional_fields = " ".join(
                     [
-                        f"{field.name}={click.style(issue.__getattribute__(field.name) or '-', bold=True, fg='blue')}"
+                        f"{field.name}={click.style(escape_control_chars(issue.__getattribute__(field.name) or '-'), bold=True, fg='blue')}"
                         for field in fields(issue)
                         if field.name not in ("rules", "severity", "description")
                     ]
@@ -340,7 +340,7 @@ def check(
                         fg=severity_color[issue.severity.name.lower()],
                     )
                     + " description="
-                    + click.style(issue.description, bold=True, fg="blue")
+                    + click.style(escape_control_chars(issue.description), bold=True, fg="blue")
                     + " rule="
                     + click.style(formatted_rules_output, bold=True, fg="blue")
                     + f" {additional_fields}"
@@ -438,4 +438,4 @@ def check(
                 "severity": "error",
                 "description": str(e)
             }], junitxml)
-        raise click.ClickException("Check error: " + str(e))
+        raise click.ClickException("Check error: " + escape_control_chars(e))
