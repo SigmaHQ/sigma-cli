@@ -103,11 +103,17 @@ def render_output_filename(template: str, rule_source_path: pathlib.Path, base_d
     stem = rule_source_path.stem
     
     # Render template
-    rendered = template.format(
-        path=path_component,
-        stem=stem,
-        index=index if index is not None else ""
-    )
+    try:
+        rendered = template.format(
+            path=path_component,
+            stem=stem,
+            index=index if index is not None else ""
+        )
+    except KeyError as e:
+        raise click.ClickException(
+            f"Unknown placeholder {e} in --output-filename-template. "
+            "Available placeholders are: {path}, {stem}, {index}."
+        )
     
     # Clean up any double slashes or empty path components
     rendered = rendered.replace("//", "/").strip("/")
