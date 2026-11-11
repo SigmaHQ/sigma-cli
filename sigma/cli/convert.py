@@ -4,7 +4,7 @@ import os
 import pathlib
 import re
 import textwrap
-from typing import Sequence
+from typing import Optional, Sequence
 
 import click
 
@@ -19,6 +19,8 @@ from sigma.exceptions import (
     SigmaPipelineNotFoundError,
 )
 from sigma.plugins import InstalledSigmaPlugins
+from sigma.processing.pipeline import ProcessingPipeline
+from sigma.processing.resolver import ProcessingPipelineResolver
 from sigma.cli.pysigma import build_sigma_policy
 
 plugins = InstalledSigmaPlugins.autodiscover()
@@ -26,6 +28,45 @@ backends = plugins.backends
 pipelines = plugins.pipelines
 pipeline_resolver = plugins.get_pipeline_resolver()
 pipeline_list = list(pipeline_resolver.pipelines.keys())
+
+
+class PolicyPipelineResolver(ProcessingPipelineResolver):
+    """
+    Pipeline resolver that parses pipeline files with a Sigma policy.
+
+    pySigma checks the template vars settings (allow_template_vars, vars_allowed_paths) while the
+    template postprocessing items are constructed, which happens when the pipeline YAML is parsed.
+    Attaching the policy to the resolved pipeline afterwards is too late: the vars file has already
+    been executed. The policy therefore has to be passed to ProcessingPipeline.from_yaml.
+    """
+
+    policy = None
+
+    def resolve_pipeline(self, spec: str, target: Optional[str] = None) -> ProcessingPipeline:
+        if spec in self.pipelines:
+            return super().resolve_pipeline(spec, target)
+        try:
+            with open(spec, "r") as f:
+                resolved_pipeline = ProcessingPipeline.from_yaml(
+                    f.read(), source_path=spec, policy=self.policy
+                )
+        except OSError:
+            raise SigmaPipelineNotFoundError(spec)
+        if target is not None and not (
+            len(resolved_pipeline.allowed_backends) == 0
+            or target in resolved_pipeline.allowed_backends
+        ):
+            raise SigmaPipelineNotAllowedForBackendError(spec, target)
+        return resolved_pipeline
+
+
+def resolve_pipelines(pipeline_specs, target, policy) -> ProcessingPipeline:
+    """Resolve pipeline names and files into one pipeline, loading files under *policy*."""
+    resolver = PolicyPipelineResolver(pipelines=pipeline_resolver.pipelines)
+    resolver.policy = policy
+    resolved = resolver.resolve(list(pipeline_specs), target)
+    resolved.policy = policy
+    return resolved
 
 
 class KeyValueParamType(click.ParamType):
@@ -516,10 +557,9 @@ def convert(
     # Initialize processing pipeline and backend
     backend_class = backends[target]
     try:
-        processing_pipeline = pipeline_resolver.resolve(
-            pipeline, target if pipeline_check else None
+        processing_pipeline = resolve_pipelines(
+            pipeline, target if pipeline_check else None, policy
         )
-        processing_pipeline.policy = policy
     except SigmaPipelineNotFoundError as e:
         raise click.UsageError(
             f"The pipeline '{e.spec}' was not found.\n"
@@ -546,6 +586,8 @@ def convert(
         """
             )
         )
+    except SigmaError as e:
+        raise click.UsageError(f"Error while loading processing pipeline: {e}")
 
     try:
         backend: Backend = backend_class(

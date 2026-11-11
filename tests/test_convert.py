@@ -686,14 +686,14 @@ def test_convert_policy_safe_overridden_by_regex_engine(monkeypatch):
     """--policy safe --regex-engine python: Python engine overrides SafePolicy's RE2 on the pipeline."""
     captured = {}
     import sigma.cli.convert as conv_module
-    real_resolve = conv_module.pipeline_resolver.resolve
+    real_resolve = conv_module.PolicyPipelineResolver.resolve
 
-    def capturing_resolve(pipeline, target=None):
-        pp = real_resolve(pipeline, target)
+    def capturing_resolve(self, pipeline, target=None):
+        pp = real_resolve(self, pipeline, target)
         captured["pipeline"] = pp
         return pp
 
-    monkeypatch.setattr(conv_module.pipeline_resolver, "resolve", capturing_resolve)
+    monkeypatch.setattr(conv_module.PolicyPipelineResolver, "resolve", capturing_resolve)
 
     cli = CliRunner()
     result = cli.invoke(
