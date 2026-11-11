@@ -4,10 +4,9 @@ import click
 from prettytable import PrettyTable
 from sigma.exceptions import SigmaError
 from sigma.processing.resolver import SigmaPipelineNotFoundError
-
-from sigma.cli.convert import resolve_pipelines
+from sigma.cli.convert import pipeline_resolver, resolve_pipelines
+from sigma.cli.rules import check_rule_errors, escape_control_chars, load_rules
 from sigma.cli.pysigma import build_sigma_policy
-from sigma.cli.rules import check_rule_errors, load_rules
 from sigma.analyze.attack import score_functions, calculate_attack_scores
 from sigma.analyze.fields import extract_fields_from_collection
 from sigma.analyze.stats import create_logsourcestats, format_row
@@ -201,7 +200,9 @@ def analyze_logsource(
     headers = ["Logsource"] + list(next(iter(stats.values())).keys())
 
     # Prepare rows
-    rows = [[key] + list(value.values()) for key, value in stats.items()]
+    rows = [
+        [escape_control_chars(key)] + list(value.values()) for key, value in stats.items()
+    ]
     sort_index = headers.index(sort_by)
     rows.sort(key=lambda x: x[sort_index], reverse=True)
 
@@ -322,7 +323,7 @@ def analyze_fields(file_pattern, target, pipeline, pipeline_check, group, enable
             collect_errors=True,
         )
     except Exception as e:
-        raise click.ClickException(f"Failed to initialize backend '{target}': {str(e)}")
+        raise click.ClickException(f"Failed to initialize backend '{target}': {escape_control_chars(e)}")
     
     # Extract fields
     all_fields, errors = extract_fields_from_collection(rules, backend, group)
@@ -331,7 +332,7 @@ def analyze_fields(file_pattern, target, pipeline, pipeline_check, group, enable
     if errors:
         click.echo("Warnings during field extraction:", err=True)
         for error in errors:
-            click.echo(f"* {error}", err=True)
+            click.echo(f"* {escape_control_chars(error)}", err=True)
 
     if group:
         table = PrettyTable()
@@ -339,8 +340,13 @@ def analyze_fields(file_pattern, target, pipeline, pipeline_check, group, enable
         table.align["Logsource"] = "r"
         table.align["Fields"] = "l"
         for logsource, fields in sorted(all_fields.items()):
-            table.add_row([logsource, "\n".join(sorted(fields))])
+            table.add_row(
+                [
+                    escape_control_chars(logsource),
+                    "\n".join(escape_control_chars(field) for field in sorted(fields)),
+                ]
+            )
         click.echo(table)
     else:
         # Output fields sorted
-        click.echo("\n".join(sorted(all_fields)))
+        click.echo("\n".join(escape_control_chars(field) for field in sorted(all_fields)))
