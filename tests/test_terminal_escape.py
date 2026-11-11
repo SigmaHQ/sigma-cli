@@ -1,5 +1,6 @@
 """Rule-derived text must not reach the terminal with raw control or escape sequences."""
 
+import platform
 import pytest
 from click.testing import CliRunner
 
@@ -61,6 +62,7 @@ def test_check_escapes_rule_level_in_error(tmp_path):
     assert "\\x1b[2J" in result.output
 
 
+@pytest.mark.skipif(platform.system() != "Linux", reason="Terminal escape sequences test requires Linux")
 def test_check_escapes_rule_file_name(tmp_path):
     rule = write_rule(tmp_path / f"rule{ESC}[8m.yml", level="nope")
     result = invoke_tty(check, [str(rule)])
@@ -107,6 +109,7 @@ def test_analyze_logsource_escapes_logsource(tmp_path):
     assert "\\x1b[31mcat" in result.output
 
 
+@pytest.mark.skipif(platform.system() != "Linux", reason="Terminal escape sequences test requires Linux")
 def test_check_escapes_validation_issue_rule_path(tmp_path):
     # The unused detection 'dangling' triggers a validation issue that names the rule file.
     rule = tmp_path / f"issue{ESC}[2K.yml"
