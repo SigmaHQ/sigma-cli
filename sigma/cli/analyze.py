@@ -2,10 +2,11 @@ import json
 import pathlib
 import click
 from prettytable import PrettyTable
+from sigma.exceptions import SigmaError
 from sigma.processing.resolver import SigmaPipelineNotFoundError
-
-from sigma.cli.convert import pipeline_resolver
+from sigma.cli.convert import pipeline_resolver, resolve_pipelines
 from sigma.cli.rules import check_rule_errors, escape_control_chars, load_rules
+from sigma.cli.pysigma import build_sigma_policy
 from sigma.analyze.attack import score_functions, calculate_attack_scores
 from sigma.analyze.fields import extract_fields_from_collection
 from sigma.analyze.stats import create_logsourcestats, format_row
@@ -294,15 +295,10 @@ def analyze_fields(file_pattern, target, pipeline, pipeline_check, group, enable
     
     # Resolve pipelines
     try:
-        processing_pipeline = pipeline_resolver.resolve(
-            pipeline, target if pipeline_check else None
+        policy = build_sigma_policy(None, None, enable_template_vars, template_vars_path, False)
+        processing_pipeline = resolve_pipelines(
+            pipeline, target if pipeline_check else None, policy
         )
-        
-        # Configure template variable settings on the processing pipeline
-        if enable_template_vars:
-            processing_pipeline.allow_template_vars = True
-        if template_vars_path:
-            processing_pipeline.vars_allowed_paths = [str(p) for p in template_vars_path]
     except SigmaPipelineNotFoundError as e:
         raise click.UsageError(
             f"The pipeline '{e.spec}' was not found.\n"
@@ -316,7 +312,9 @@ def analyze_fields(file_pattern, target, pipeline, pipeline_check, group, enable
             + "\n"
             + "Pipelines not listed here are treated as file names."
         )
-    
+    except SigmaError as e:
+        raise click.UsageError(f"Error while loading processing pipeline: {e}")
+
     # Initialize backend
     backend_class = backends[target]
     try:

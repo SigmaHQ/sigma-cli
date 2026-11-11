@@ -2,8 +2,9 @@ import json
 import hashlib
 import os
 import pathlib
+import re
 import textwrap
-from typing import Sequence
+from typing import Optional, Sequence
 
 import click
 
@@ -18,6 +19,8 @@ from sigma.exceptions import (
     SigmaPipelineNotFoundError,
 )
 from sigma.plugins import InstalledSigmaPlugins
+from sigma.processing.pipeline import ProcessingPipeline
+from sigma.processing.resolver import ProcessingPipelineResolver
 from sigma.cli.pysigma import build_sigma_policy
 
 plugins = InstalledSigmaPlugins.autodiscover()
@@ -25,6 +28,45 @@ backends = plugins.backends
 pipelines = plugins.pipelines
 pipeline_resolver = plugins.get_pipeline_resolver()
 pipeline_list = list(pipeline_resolver.pipelines.keys())
+
+
+class PolicyPipelineResolver(ProcessingPipelineResolver):
+    """
+    Pipeline resolver that parses pipeline files with a Sigma policy.
+
+    pySigma checks the template vars settings (allow_template_vars, vars_allowed_paths) while the
+    template postprocessing items are constructed, which happens when the pipeline YAML is parsed.
+    Attaching the policy to the resolved pipeline afterwards is too late: the vars file has already
+    been executed. The policy therefore has to be passed to ProcessingPipeline.from_yaml.
+    """
+
+    policy = None
+
+    def resolve_pipeline(self, spec: str, target: Optional[str] = None) -> ProcessingPipeline:
+        if spec in self.pipelines:
+            return super().resolve_pipeline(spec, target)
+        try:
+            with open(spec, "r") as f:
+                resolved_pipeline = ProcessingPipeline.from_yaml(
+                    f.read(), source_path=spec, policy=self.policy
+                )
+        except OSError:
+            raise SigmaPipelineNotFoundError(spec)
+        if target is not None and not (
+            len(resolved_pipeline.allowed_backends) == 0
+            or target in resolved_pipeline.allowed_backends
+        ):
+            raise SigmaPipelineNotAllowedForBackendError(spec, target)
+        return resolved_pipeline
+
+
+def resolve_pipelines(pipeline_specs, target, policy) -> ProcessingPipeline:
+    """Resolve pipeline names and files into one pipeline, loading files under *policy*."""
+    resolver = PolicyPipelineResolver(pipelines=pipeline_resolver.pipelines)
+    resolver.policy = policy
+    resolved = resolver.resolve(list(pipeline_specs), target)
+    resolved.policy = policy
+    return resolved
 
 
 class KeyValueParamType(click.ParamType):
@@ -90,9 +132,11 @@ def render_output_filename(template: str, rule_source_path: pathlib.Path, base_d
     try:
         relative_path = rule_source_path.relative_to(base_dir)
     except ValueError:
-        # If rule_source_path is not relative to base_dir, use the rule path as-is
-        relative_path = rule_source_path
-    
+        # If rule_source_path is not relative to base_dir, use the rule path without its anchor
+        # (root/drive) and without '.'/'..' components, so it stays below the output directory.
+        parts = rule_source_path.parts[1:] if rule_source_path.anchor else rule_source_path.parts
+        relative_path = pathlib.Path(*(p for p in parts if p not in (".", "..")))
+
     # Get parent directory path (without filename)
     if relative_path.parent != pathlib.Path("."):
         path_component = str(relative_path.parent)
@@ -111,8 +155,37 @@ def render_output_filename(template: str, rule_source_path: pathlib.Path, base_d
     
     # Clean up any double slashes or empty path components
     rendered = rendered.replace("//", "/").strip("/")
-    
+
     return pathlib.Path(rendered)
+
+
+def safe_filename(name: str) -> str:
+    """
+    Turn an arbitrary string (e.g. a rule title) into a single, harmless path component.
+    Path separators and other special characters are replaced, so the result can't
+    traverse directories.
+    """
+    safe = re.sub(r"[^\w\-. ]", "_", name).strip()
+    if safe in ("", ".", ".."):
+        safe = "rule_" + hashlib.sha256(name.encode()).hexdigest()[:16]
+    return safe
+
+
+def contained_output_path(output_dir: pathlib.Path, relative_path: pathlib.Path) -> pathlib.Path:
+    """
+    Join a rendered output filename to the output directory and make sure the result
+    stays inside it. Raises click.ClickException otherwise.
+    """
+    if (
+        relative_path.anchor
+        or ".." in relative_path.parts
+        or relative_path in (pathlib.Path(""), pathlib.Path("."))
+    ):
+        raise click.ClickException(
+            f"Refusing to write output file '{relative_path}': the path is not inside the "
+            f"output directory '{output_dir}'."
+        )
+    return output_dir / relative_path
 
 
 def write_separate_files(
@@ -207,14 +280,17 @@ def write_separate_files(
         if rule.source and hasattr(rule.source, 'path'):
             rule_source_path = pathlib.Path(rule.source.path)
         else:
-            # If no source path, use rule ID or title as filename
-            rule_source_path = pathlib.Path(f"{rule.id or rule.title}.yml")
+            # If no source path, use rule ID or title as filename. The title is rule content
+            # and must not be able to introduce directory components.
+            rule_source_path = pathlib.Path(safe_filename(str(rule.id or rule.title)) + ".yml")
         
         # Write results
         if len(results) == 1:
             # Single result, no index needed
             result, _ = results[0]
-            output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, None)
+            output_path = contained_output_path(
+                output_dir, render_output_filename(filename_template, rule_source_path, base_dir, None)
+            )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
             if isinstance(result, str):
@@ -234,7 +310,9 @@ def write_separate_files(
             # because conditions that produce no query leave gaps. We want consistent, predictable
             # filenames.
             for file_idx, (result, _) in enumerate(results, start=1):
-                output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, file_idx)
+                output_path = contained_output_path(
+                    output_dir, render_output_filename(filename_template, rule_source_path, base_dir, file_idx)
+                )
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 
                 if isinstance(result, str):
@@ -479,10 +557,9 @@ def convert(
     # Initialize processing pipeline and backend
     backend_class = backends[target]
     try:
-        processing_pipeline = pipeline_resolver.resolve(
-            pipeline, target if pipeline_check else None
+        processing_pipeline = resolve_pipelines(
+            pipeline, target if pipeline_check else None, policy
         )
-        processing_pipeline.policy = policy
     except SigmaPipelineNotFoundError as e:
         raise click.UsageError(
             f"The pipeline '{e.spec}' was not found.\n"
@@ -509,6 +586,8 @@ def convert(
         """
             )
         )
+    except SigmaError as e:
+        raise click.UsageError(f"Error while loading processing pipeline: {e}")
 
     try:
         backend: Backend = backend_class(
