@@ -51,7 +51,7 @@ def cli():
 def version():
     """Print version of Sigma CLI."""
     try:
-        data = requests.get("https://pypi.org/pypi/sigma-cli/json").json()
+        data = requests.get("https://pypi.org/pypi/sigma-cli/json", timeout=(3.05, 10)).json()
         versions = list(data["releases"].keys())
         versions.sort(key=Version, reverse=True)
         last_version = versions[0]
