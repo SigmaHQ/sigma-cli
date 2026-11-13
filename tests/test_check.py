@@ -3,6 +3,8 @@ from click.testing import CliRunner
 from sigma.cli.check import check
 import xml.etree.ElementTree as ET
 from sigma.cli.check import generate_junit_report
+from sigma.policy.regex_engine import PythonRegexEngine, RE2RegexEngine
+import sigma.policy as _sigma_policy_module
 import pathlib
 
 
@@ -200,3 +202,48 @@ def test_check_collection_error_junitxml(tmp_path):
     tree = ET.parse(str(out))
     failures = tree.getroot().findall(".//failure")
     assert any("repaet" in (f.text or "") + (f.get("message") or "") for f in failures)
+
+
+# ── Policy / SigmaPolicy option tests ──────────────────────────────────────
+
+def test_check_policy_safe():
+    """--policy safe applies SafePolicy: RE2 engine, template vars and external sources disabled."""
+    cli = CliRunner()
+    result = cli.invoke(check, ["--policy", "safe", "tests/files/valid"])
+    assert result.exit_code == 0
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, RE2RegexEngine)
+    assert not _sigma_policy_module.default_policy.allow_template_vars
+    assert not _sigma_policy_module.default_policy.allow_external_sources
+
+
+def test_check_policy_trusted():
+    """--policy trusted applies TrustedPolicy: Python regex engine."""
+    cli = CliRunner()
+    result = cli.invoke(check, ["--policy", "trusted", "tests/files/valid"])
+    assert result.exit_code == 0
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, PythonRegexEngine)
+
+
+def test_check_regex_engine_re2():
+    """--regex-engine re2 sets RE2RegexEngine on the applied policy."""
+    cli = CliRunner()
+    result = cli.invoke(check, ["--regex-engine", "re2", "tests/files/valid"])
+    assert result.exit_code == 0
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, RE2RegexEngine)
+
+
+def test_check_regex_engine_python():
+    """--regex-engine python sets PythonRegexEngine on the applied policy."""
+    cli = CliRunner()
+    result = cli.invoke(check, ["--regex-engine", "python", "tests/files/valid"])
+    assert result.exit_code == 0
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, PythonRegexEngine)
+
+
+def test_check_policy_trusted_overridden_by_regex_engine_re2():
+    """--policy trusted --regex-engine re2: RE2 engine overrides TrustedPolicy's Python engine."""
+    cli = CliRunner()
+    result = cli.invoke(check, ["--policy", "trusted", "--regex-engine", "re2", "tests/files/valid"])
+    assert result.exit_code == 0
+    assert isinstance(_sigma_policy_module.default_policy.regex_engine, RE2RegexEngine)
+

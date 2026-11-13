@@ -1,12 +1,14 @@
 import json
+import hashlib
 import os
 import pathlib
+import re
 import textwrap
-from typing import Sequence
+from typing import Optional, Sequence
 
 import click
 
-from sigma.cli.rules import load_rules, check_rule_errors
+from sigma.cli.rules import escape_control_chars, load_rules, check_rule_errors
 from sigma.collection import SigmaCollection
 from sigma.correlations import SigmaCorrelationRule
 from sigma.conversion.base import Backend
@@ -17,12 +19,54 @@ from sigma.exceptions import (
     SigmaPipelineNotFoundError,
 )
 from sigma.plugins import InstalledSigmaPlugins
+from sigma.processing.pipeline import ProcessingPipeline
+from sigma.processing.resolver import ProcessingPipelineResolver
+from sigma.cli.pysigma import build_sigma_policy
 
 plugins = InstalledSigmaPlugins.autodiscover()
 backends = plugins.backends
 pipelines = plugins.pipelines
 pipeline_resolver = plugins.get_pipeline_resolver()
 pipeline_list = list(pipeline_resolver.pipelines.keys())
+
+
+class PolicyPipelineResolver(ProcessingPipelineResolver):
+    """
+    Pipeline resolver that parses pipeline files with a Sigma policy.
+
+    pySigma checks the template vars settings (allow_template_vars, vars_allowed_paths) while the
+    template postprocessing items are constructed, which happens when the pipeline YAML is parsed.
+    Attaching the policy to the resolved pipeline afterwards is too late: the vars file has already
+    been executed. The policy therefore has to be passed to ProcessingPipeline.from_yaml.
+    """
+
+    policy = None
+
+    def resolve_pipeline(self, spec: str, target: Optional[str] = None) -> ProcessingPipeline:
+        if spec in self.pipelines:
+            return super().resolve_pipeline(spec, target)
+        try:
+            with open(spec, "r") as f:
+                resolved_pipeline = ProcessingPipeline.from_yaml(
+                    f.read(), source_path=spec, policy=self.policy
+                )
+        except OSError:
+            raise SigmaPipelineNotFoundError(spec)
+        if target is not None and not (
+            len(resolved_pipeline.allowed_backends) == 0
+            or target in resolved_pipeline.allowed_backends
+        ):
+            raise SigmaPipelineNotAllowedForBackendError(spec, target)
+        return resolved_pipeline
+
+
+def resolve_pipelines(pipeline_specs, target, policy) -> ProcessingPipeline:
+    """Resolve pipeline names and files into one pipeline, loading files under *policy*."""
+    resolver = PolicyPipelineResolver(pipelines=pipeline_resolver.pipelines)
+    resolver.policy = policy
+    resolved = resolver.resolve(list(pipeline_specs), target)
+    resolved.policy = policy
+    return resolved
 
 
 class KeyValueParamType(click.ParamType):
@@ -88,9 +132,11 @@ def render_output_filename(template: str, rule_source_path: pathlib.Path, base_d
     try:
         relative_path = rule_source_path.relative_to(base_dir)
     except ValueError:
-        # If rule_source_path is not relative to base_dir, use the rule path as-is
-        relative_path = rule_source_path
-    
+        # If rule_source_path is not relative to base_dir, use the rule path without its anchor
+        # (root/drive) and without '.'/'..' components, so it stays below the output directory.
+        parts = rule_source_path.parts[1:] if rule_source_path.anchor else rule_source_path.parts
+        relative_path = pathlib.Path(*(p for p in parts if p not in (".", "..")))
+
     # Get parent directory path (without filename)
     if relative_path.parent != pathlib.Path("."):
         path_component = str(relative_path.parent)
@@ -109,8 +155,37 @@ def render_output_filename(template: str, rule_source_path: pathlib.Path, base_d
     
     # Clean up any double slashes or empty path components
     rendered = rendered.replace("//", "/").strip("/")
-    
+
     return pathlib.Path(rendered)
+
+
+def safe_filename(name: str) -> str:
+    """
+    Turn an arbitrary string (e.g. a rule title) into a single, harmless path component.
+    Path separators and other special characters are replaced, so the result can't
+    traverse directories.
+    """
+    safe = re.sub(r"[^\w\-. ]", "_", name).strip()
+    if safe in ("", ".", ".."):
+        safe = "rule_" + hashlib.sha256(name.encode()).hexdigest()[:16]
+    return safe
+
+
+def contained_output_path(output_dir: pathlib.Path, relative_path: pathlib.Path) -> pathlib.Path:
+    """
+    Join a rendered output filename to the output directory and make sure the result
+    stays inside it. Raises click.ClickException otherwise.
+    """
+    if (
+        relative_path.anchor
+        or ".." in relative_path.parts
+        or relative_path in (pathlib.Path(""), pathlib.Path("."))
+    ):
+        raise click.ClickException(
+            f"Refusing to write output file '{relative_path}': the path is not inside the "
+            f"output directory '{output_dir}'."
+        )
+    return output_dir / relative_path
 
 
 def write_separate_files(
@@ -194,8 +269,9 @@ def write_separate_files(
         if rule.source and hasattr(rule.source, 'path'):
             rule_source_path = pathlib.Path(rule.source.path)
         else:
-            # If no source path, use rule ID or title as filename
-            rule_source_path = pathlib.Path(f"{rule.id or rule.title}.yml")
+            # If no source path, use rule ID or title as filename. The title is rule content
+            # and must not be able to introduce directory components.
+            rule_source_path = pathlib.Path(safe_filename(str(rule.id or rule.title)) + ".yml")
 
         # Multiple results get a sequential index (1, 2, 3...) instead of the condition index
         # because conditions that produce no query leave gaps. We want consistent, predictable
@@ -203,9 +279,11 @@ def write_separate_files(
         for file_idx, (result, _) in enumerate(results, start=1):
             index = file_idx if len(results) > 1 else None
             if not isinstance(result, (str, bytes, dict)):
-                click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{rule.title}' result {file_idx}/{len(results)} (source: {rule.source}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
+                click.echo(f"Warning: Backend returned unexpected format '{type(result).__name__}' for rule '{escape_control_chars(rule.title)}' result {file_idx}/{len(results)} (source: {escape_control_chars(rule.source)}). Expected str, bytes, or dict. This result will not be written to file.", err=True)
                 continue
-            output_path = output_dir / render_output_filename(filename_template, rule_source_path, base_dir, index)
+            output_path = contained_output_path(
+                output_dir, render_output_filename(filename_template, rule_source_path, base_dir, index)
+            )
             outputs.setdefault(os.path.normcase(os.path.abspath(output_path)), []).append(
                 (output_path, result, rule)
             )
@@ -238,9 +316,12 @@ def write_separate_files(
         if colliding:
             collisions += len(colliding)
             click.echo(
-                f"Error: Output file '{output_path}' is already used for rule '{first_rule.title}' "
-                f"(source: {first_rule.source}). Not written: "
-                + ", ".join(f"rule '{rule.title}' (source: {rule.source})" for _, _, rule in colliding),
+                f"Error: Output file '{escape_control_chars(output_path)}' is already used for rule "
+                f"'{escape_control_chars(first_rule.title)}' (source: {escape_control_chars(first_rule.source)}). Not written: "
+                + ", ".join(
+                    f"rule '{escape_control_chars(rule.title)}' (source: {escape_control_chars(rule.source)})"
+                    for _, _, rule in colliding
+                ),
                 err=True,
             )
 
@@ -373,6 +454,25 @@ def write_separate_files(
     help="Backend-specific options provided as key=value pair.",
 )
 @click.option(
+    "--policy",
+    "policy_profile",
+    type=click.Choice(["safe", "trusted"]),
+    default=None,
+    help="Security policy profile: 'safe' (RE2 regex, restrictive) or 'trusted' (Python regex, permissive). Defaults to the pySigma default policy.",
+)
+@click.option(
+    "--regex-engine",
+    type=click.Choice(["re2", "python"]),
+    default=None,
+    help="Override the regex engine independently of --policy: 're2' (DoS-safe) or 'python' (broader support).",
+)
+@click.option(
+    "--allow-external-sources",
+    is_flag=True,
+    default=False,
+    help="Allow transformations that load data from external sources (files, HTTP, commands).",
+)
+@click.option(
     "--enable-template-vars",
     is_flag=True,
     default=False,
@@ -413,6 +513,9 @@ def convert(
     encoding,
     json_indent,
     backend_option,
+    policy_profile,
+    regex_engine,
+    allow_external_sources,
     enable_template_vars,
     template_vars_path,
     input,
@@ -459,18 +562,14 @@ def convert(
         for k, v in backend_options.items()
     }
 
+    policy = build_sigma_policy(policy_profile, regex_engine, enable_template_vars, template_vars_path, allow_external_sources)
+
     # Initialize processing pipeline and backend
     backend_class = backends[target]
     try:
-        processing_pipeline = pipeline_resolver.resolve(
-            pipeline, target if pipeline_check else None
+        processing_pipeline = resolve_pipelines(
+            pipeline, target if pipeline_check else None, policy
         )
-        
-        # Configure template variable settings on the processing pipeline
-        if enable_template_vars:
-            processing_pipeline.allow_template_vars = True
-        if template_vars_path:
-            processing_pipeline.vars_allowed_paths = [str(p) for p in template_vars_path]
     except SigmaPipelineNotFoundError as e:
         raise click.UsageError(
             f"The pipeline '{e.spec}' was not found.\n"
@@ -497,6 +596,8 @@ def convert(
         """
             )
         )
+    except SigmaError as e:
+        raise click.UsageError(f"Error while loading processing pipeline: {e}")
 
     try:
         backend: Backend = backend_class(
@@ -535,7 +636,7 @@ def convert(
             )
 
     try:
-        rule_collection = load_rules(input + filter, file_pattern)
+        rule_collection = load_rules(input + filter, file_pattern, policy=policy)
         check_rule_errors(rule_collection)
         
         # Check if we should write to separate files
@@ -595,7 +696,7 @@ def convert(
                     output,
                 )
             elif isinstance(result, dict):
-                click.echo(bytes(json.dumps(result, indent=json_indent), encoding))
+                click.echo(bytes(json.dumps(result, indent=json_indent), encoding), output)
             else:
                 raise click.ClickException(
                     f"Backend returned unexpected format {str(type(result))}"
@@ -605,15 +706,15 @@ def convert(
             click.echo('Error while converting')
             raise e
         else:
-            raise click.ClickException("Error while converting: " + str(e))
+            raise click.ClickException("Error while converting: " + escape_control_chars(e))
     except NotImplementedError as e:
         if verbose:
             click.echo('Feature required for conversion of Sigma rule is not supported by backend')
             raise e
         else:
-            raise click.ClickException("Feature required for conversion of Sigma rule is not supported by backend: " + str(e))
+            raise click.ClickException("Feature required for conversion of Sigma rule is not supported by backend: " + escape_control_chars(e))
 
     if len(backend.errors) > 0:
         click.echo("\nIgnored errors:", err=True)
         for rule, error in backend.errors:
-            click.echo(f"{str(rule.source)}: {str(error)}", err=True)
+            click.echo(f"{escape_control_chars(rule.source)}: {escape_control_chars(error)}", err=True)

@@ -8,8 +8,9 @@ from dataclasses import fields
 
 import click
 from prettytable import PrettyTable
+from sigma.cli.pysigma import build_sigma_policy
 
-from sigma.cli.rules import load_rules
+from sigma.cli.rules import escape_control_chars, load_rules
 from sigma.exceptions import SigmaConditionError, SigmaError
 from sigma.plugins import InstalledSigmaPlugins
 from sigma.validation import SigmaValidator
@@ -127,8 +128,8 @@ def validate_loaded_rules(check_rules, rule_validator):
     return issues
 
 
-def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_results=None):
-    rule_collection = load_rules(input, file_pattern)
+def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_results=None, policy=None):
+    rule_collection = load_rules(input, file_pattern, policy=policy)
     check_rules = list()
     first_error = True
     for rule in rule_collection.rules:
@@ -140,7 +141,7 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
                 first_error = False
     
             for error in rule.errors:
-                click.echo(error)
+                click.echo(escape_control_chars(error))
                 rule_errors.update((error.__class__.__name__,))
                 if junit_results is not None:
                     # Extract error type dynamically (SigmaParsingError vs SigmaValueError etc.)
@@ -160,7 +161,7 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
             except SigmaConditionError as e:  # Error in condition
                 error = str(e)
                 click.echo(
-                    f"Condition error in { str(condition.source) }:{ error }"
+                    f"Condition error in {escape_control_chars(condition.source)}:{escape_control_chars(error)}"
                 )
                 cond_errors.update((error,))
                 if junit_results is not None:
@@ -197,6 +198,37 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
     return check_rules
 
 @click.command()
+@click.option(
+    "--policy",
+    "policy_profile",
+    type=click.Choice(["safe", "trusted"]),
+    default=None,
+    help="Security policy profile: 'safe' (RE2 regex, restrictive) or 'trusted' (Python regex, permissive). Defaults to the pySigma default policy.",
+)
+@click.option(
+    "--regex-engine",
+    type=click.Choice(["re2", "python"]),
+    default=None,
+    help="Override the regex engine independently of --policy: 're2' (DoS-safe) or 'python' (broader support).",
+)
+@click.option(
+    "--allow-external-sources",
+    is_flag=True,
+    default=False,
+    help="Allow transformations that load data from external sources (files, HTTP, commands).",
+)
+@click.option(
+    "--enable-template-vars",
+    is_flag=True,
+    default=False,
+    help="Enable template variable support in processing pipeline. WARNING: This feature can be dangerous and allow arbitrary code execution if used with untrusted Sigma rules.",
+)
+@click.option(
+    "--template-vars-path",
+    multiple=True,
+    type=click.Path(exists=True, path_type=pathlib.Path),
+    help="Allowed paths for template variable expansion. Can be specified multiple times.",
+)
 @click.option(
     "--validation-config",
     "-c",
@@ -244,17 +276,20 @@ def load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_re
     type=click.Path(exists=True, allow_dash=True, path_type=pathlib.Path),
 )
 def check(
-    input, validation_config, file_pattern, fail_on_error, fail_on_issues, junitxml, exclude
+    input, validation_config, file_pattern, fail_on_error, fail_on_issues, junitxml, exclude,
+    policy_profile, regex_engine, allow_external_sources, enable_template_vars, template_vars_path,
 ):
     """Check Sigma rules for validity and best practices (not yet implemented)."""
     
     rule_validator = setup_validator(validation_config, exclude)
 
+    policy = build_sigma_policy(policy_profile, regex_engine, enable_template_vars, template_vars_path, allow_external_sources)
+
     try:
         rule_errors = Counter()
         cond_errors = Counter()
         junit_results = [] if junitxml else None
-        check_rules = load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_results)
+        check_rules = load_and_check_rules(input, file_pattern, rule_errors, cond_errors, junit_results, policy=policy)
 
         # TODO: From Python 3.10 the commented line below can be used.
         rule_error_count = sum(rule_errors.values())
@@ -268,14 +303,14 @@ def check(
             click.echo("=== Issues ===")
             for issue in issues:
                 # Need to split SigmaValidationIssue __str__
-                formatted_rules_output = ", ".join(
+                formatted_rules_output = escape_control_chars(", ".join(
                     [
                         str(rule_with_issue.source)
                         if rule_with_issue.source is not None
                         else str(rule_with_issue.id) or rule_with_issue.title
                         for rule_with_issue in issue.rules
                     ]
-                )
+                ))
                 if junitxml:
                     for rule in issue.rules:
                         junit_results.append({
@@ -289,7 +324,7 @@ def check(
 
                 additional_fields = " ".join(
                     [
-                        f"{field.name}={click.style(issue.__getattribute__(field.name) or '-', bold=True, fg='blue')}"
+                        f"{field.name}={click.style(escape_control_chars(issue.__getattribute__(field.name) or '-'), bold=True, fg='blue')}"
                         for field in fields(issue)
                         if field.name not in ("rules", "severity", "description")
                     ]
@@ -305,7 +340,7 @@ def check(
                         fg=severity_color[issue.severity.name.lower()],
                     )
                     + " description="
-                    + click.style(issue.description, bold=True, fg="blue")
+                    + click.style(escape_control_chars(issue.description), bold=True, fg="blue")
                     + " rule="
                     + click.style(formatted_rules_output, bold=True, fg="blue")
                     + f" {additional_fields}"
@@ -403,4 +438,4 @@ def check(
                 "severity": "error",
                 "description": str(e)
             }], junitxml)
-        raise click.ClickException("Check error: " + str(e))
+        raise click.ClickException("Check error: " + escape_control_chars(e))
