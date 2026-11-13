@@ -155,18 +155,33 @@ def install_plugin(
     default=True,
     help="Enable or disable plugin compatibility check.",
 )
-def upgrade_plugin(compatibility_check: bool):
+@click.option(
+    "--check-pysigma/--no-check-pysigma",
+    "-l/-L",
+    default=True,
+    help="Check after plugin upgrade if pySigma version is still matching the CLI requirement.",
+)
+def upgrade_plugin(compatibility_check: bool, check_pysigma: bool):
     plugins_dir = SigmaPluginDirectory.default_plugin_directory()
     for plugin_id in plugins_dir.plugins:
         plugin = plugins_dir.get_plugin_by_uuid(uuid=plugin_id)
         if plugin.is_installed():
-            if not compatibility_check or plugin.is_compatible():
+            if not compatibility_check:
                 plugin.upgrade()
+                click.echo(f"Successfully upgrade plugin '{plugin.id}'")
+            elif plugin.is_compatible():
+                # Install the newest release that is compatible with the installed pySigma version
+                # instead of an unpinned upgrade to the newest release, which might require
+                # another pySigma version.
+                plugin.install()
                 click.echo(f"Successfully upgrade plugin '{plugin.id}'")
             else:
                 click.echo(
                     f"Plugin '{plugin.id}' not compatible with installed pySigma version"
                 )
+
+    if check_pysigma:
+        check_pysigma_command()
 
 
 @plugin_group.command(name="uninstall", help="Uninstall plugin by identifier or UUID.")
